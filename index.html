@@ -124,13 +124,14 @@ body.gridview .stage{display:none}
   font-size:calc(17px*var(--u));color:rgba(24,60,100,.55);letter-spacing:.01em}
 .post.navy .disclaimer,.post.photo .disclaimer{color:rgba(255,255,255,.62)}
 
-.footer{position:absolute;left:calc(78px*var(--u));right:calc(78px*var(--u));top:var(--footTop);height:calc(94px*var(--u));display:flex;align-items:center;justify-content:space-between}
+.action{position:absolute;left:calc(78px*var(--u));right:calc(78px*var(--u));top:var(--actTop);height:calc(94px*var(--u));display:flex;align-items:center}
+.footer{position:absolute;left:calc(78px*var(--u));right:calc(78px*var(--u));top:var(--footTop);height:calc(94px*var(--u));display:flex;align-items:center;justify-content:flex-start}
 .cta{display:flex;align-items:center;gap:calc(18px*var(--u))}
 .cta .ic{width:calc(54px*var(--u));height:calc(54px*var(--u));border-radius:50%;background:rgba(255,255,255,.13);border:calc(1.6px*var(--u)) solid rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;flex:0 0 calc(54px*var(--u))}
 .cta .ic svg{width:calc(24px*var(--u));height:calc(24px*var(--u));stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .cta .txt{color:#fff;font-size:calc(28px*var(--u));font-weight:600}
-.contact{text-align:right;color:#fff}
-.post.rtl .contact{text-align:left}
+.contact{text-align:left;color:#fff}
+.post.rtl .contact{text-align:right}
 .contact .l1{font-size:calc(25px*var(--u));font-weight:600}
 .contact .l2{margin-top:calc(8px*var(--u));font-size:calc(21px*var(--u));color:rgba(255,255,255,.72)}
 
@@ -344,6 +345,21 @@ body.gridview .stage{display:none}
         <div class="fld"><label>Grid rhythm</label><button class="btn ghost" id="varyBtn" style="margin:0;padding:9px 0">Vary across slides</button></div>
       </div>
       <div id="fields"></div>
+      <datalist id="catList">
+        <option value="Wound Care Education"></option>
+        <option value="Diabetic Foot Care"></option>
+        <option value="Home Care Advice"></option>
+        <option value="Patient Safety"></option>
+        <option value="CuraNova Services"></option>
+      </datalist>
+      <datalist id="ctaList">
+        <option value="Save this post"></option>
+        <option value="Share with a caregiver"></option>
+        <option value="Request a home assessment"></option>
+        <option value="Speak with CuraNova"></option>
+        <option value="Book through WhatsApp"></option>
+        <option value="Refer a patient"></option>
+      </datalist>
     </div>
 
     <div class="sec" id="photoSec" style="display:none">
@@ -395,9 +411,9 @@ body.gridview .stage{display:none}
 
     <div class="sec">
       <h3>Brand footer</h3>
-      <div class="fld"><label for="bTag">Tagline</label><input id="bTag"></div>
-      <div class="fld"><label for="bC1">Contact line 1</label><input id="bC1"></div>
-      <div class="fld"><label for="bC2">Contact line 2</label><input id="bC2"></div>
+      <div class="fld"><label for="bTag">Service line (header)</label><input id="bTag"></div>
+      <div class="fld"><label for="bC1">WhatsApp line</label><input id="bC1"></div>
+      <div class="fld"><label for="bC2">Social handle</label><input id="bC2"></div>
     </div>
 
     <div class="sec">
@@ -458,7 +474,7 @@ const blankSlide = () => ({
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
-  en:{eyebrow:'Wound Care Tip', title:'Your title goes *here*',
+  en:{eyebrow:'Wound Care Education', title:'Your title goes *here*',
       body:'Body text goes here — one or two short sentences that carry the takeaway.',
       cta:'Save this post', items:['First step','Second step','Third step'],
       myth:'What people believe.', fact:'What the evidence says.',
@@ -477,8 +493,8 @@ const state = {
   fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6,
   tone:'patient', capLen:'standard', dialect:'msa',
   brand:{
-    en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'Home visits in Beirut & nearby areas'},
-    ar:{tag:'رعاية متخصصة للجروح والقدم السكرية في المنزل', c1:'واتساب ٧٩ ٠٩٣ ٥٩٩ ٩٦١+', c2:'زيارات منزلية في بيروت والمناطق المجاورة'}
+    en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'@curanova.care'},
+    ar:{tag:'رعاية متخصصة للجروح والقدم السكرية في المنزل', c1:'واتساب ٧٩ ٠٩٣ ٥٩٩ ٩٦١+', c2:'@curanova.care'}
   },
   slides:[blankSlide()], active:0
 };
@@ -649,10 +665,12 @@ function paint(el, slide, f, lang){
   el.style.setProperty('--fit', 1);
   el.style.setProperty('--headTop', f.headTop*u+'px');
   el.style.setProperty('--logo', f.logo*u+'px');
-  el.style.setProperty('--frameTop', (photoFull ? f.h*0.46 : f.frameTop*u)+'px');
-  el.style.setProperty('--frameBot', f.frameBot*u+'px');
-  el.style.setProperty('--footTop', (f.h - f.footFromBot*u)+'px');
-  el.style.setProperty('--discTop', (f.h - f.frameBot*u + 16*u)+'px');
+  /* Master-template proportions: header ~11% · message ~61% · action ~10% · footer ~11% */
+  el.style.setProperty('--frameTop', (photoFull ? f.h*0.46 : f.h*0.15)+'px');
+  el.style.setProperty('--frameBot', (f.h*0.28)+'px');
+  el.style.setProperty('--actTop', (f.h*0.85)+'px');
+  el.style.setProperty('--footTop', (f.h*0.912)+'px');
+  el.style.setProperty('--discTop', (f.h*0.725)+'px');
 
   const p0 = slide.photos[0];
   const photoLayer = photoFull
@@ -676,11 +694,13 @@ function paint(el, slide, f, lang){
         <div data-fit style="display:flex;flex-direction:column;justify-content:center">${moduleHtml(slide, lang, f, u)}</div>
       </div>
       ${disc}
-      <div class="footer">
+      <div class="action">
         <div class="cta">
           <span class="ic"><svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1z"/></svg></span>
           <span class="txt">${esc(c.cta)}</span>
         </div>
+      </div>
+      <div class="footer">
         <div class="contact"><div class="l1">${esc(b.c1)}</div><div class="l2">${esc(b.c2)}</div></div>
       </div>
       <div class="safe"><div class="box m"></div>${safeUi}</div>
@@ -779,7 +799,7 @@ function panel(){
   document.getElementById('fields').innerHTML = FIELDS[s.module].map(([key,label,kind]) => {
     const v = key==='items' ? (C().items||[]).join('\n') : (C()[key] ?? '');
     const tag = kind==='input'
-      ? `<input data-k="${key}" value="${esc(v).replace(/"/g,'&quot;')}">`
+      ? `<input data-k="${key}"${key==='eyebrow'?' list="catList"':key==='cta'?' list="ctaList"':''} value="${esc(v).replace(/"/g,'&quot;')}">`
       : `<textarea data-k="${key}" rows="${kind==='list'?4:2}">${esc(v)}</textarea>`;
     return `<div class="fld${ar?' ar':''}"><label>${label}</label>${tag}</div>`;
   }).join('');
