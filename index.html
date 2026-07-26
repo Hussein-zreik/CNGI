@@ -251,6 +251,17 @@ body.gridview .stage{display:none}
         <label for="topic">Topic → copy (one per line for a batch)</label>
         <textarea id="topic" rows="3" placeholder="why diabetic patients should never self-trim calluses&#10;three signs a wound is infected"></textarea>
       </div>
+      <div class="two" style="margin-bottom:8px">
+        <div class="fld" style="margin:0"><label for="tone">Voice</label><select id="tone">
+          <option value="patient">Patient-friendly</option>
+          <option value="clinician">Clinician / referral</option>
+        </select></div>
+        <div class="fld" style="margin:0"><label for="capLen">Caption length</label><select id="capLen">
+          <option value="short">Short</option>
+          <option value="standard">Standard</option>
+          <option value="long">Long</option>
+        </select></div>
+      </div>
       <div class="two">
         <button class="btn" id="genBtn">Write this post</button>
         <button class="btn ghost" id="batchBtn">Batch all lines</button>
@@ -445,6 +456,7 @@ const DISCLAIMER = {en:'Educational content — not a substitute for clinical as
                     ar:'محتوى تثقيفي ولا يغني عن التقييم السريري.'};
 const state = {
   fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6,
+  tone:'patient', capLen:'standard',
   brand:{
     en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'Home visits in Beirut & nearby areas'},
     ar:{tag:'رعاية متخصصة للجروح والقدم السكرية في المنزل', c1:'واتساب ٧٩ ٠٩٣ ٥٩٩ ٩٦١+', c2:'زيارات منزلية في بيروت والمناطق المجاورة'}
@@ -1100,9 +1112,22 @@ function findLibrary(topic, mod, sameModuleOnly){
 /* Offline draft — works with no key or network. Reuses a matching library
    entry when the topic clearly maps to one; otherwise builds a topic-derived
    English draft with an Arabic clinical scaffold to refine or mirror. */
+/* Apply the caption-length preset to an offline draft without mutating the
+   shared library objects. Templates carry a 'standard' caption, so 'short'
+   keeps the first line + WhatsApp invite; 'standard'/'long' pass through. */
+function withCapLen(pair){
+  if(state.capLen !== 'short') return pair;
+  const clip = o => {
+    if(!o.caption) return o;
+    const parts = o.caption.split('\n\n').filter(Boolean);
+    const cap = parts.length > 1 ? [parts[0], parts[parts.length-1]].join('\n\n') : o.caption;
+    return Object.assign({}, o, {caption: cap});
+  };
+  return {en: clip(pair.en), ar: clip(pair.ar)};
+}
 function templateCopy(topic, mod){
   const hit = findLibrary(topic, mod, true);
-  if(hit) return {en:hit.en, ar:hit.ar};
+  if(hit) return withCapLen({en:hit.en, ar:hit.ar});
   const t = (topic||'').trim();
   const tc = t.replace(/\s+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
   const low = t.toLowerCase();
@@ -1139,7 +1164,7 @@ function templateCopy(topic, mod){
     caption: 'محتوى تثقيفي من ممرّضي CuraNova للعناية بالجروح في المنزل ببيروت.\n\nلأي سؤال، راسلنا عبر واتساب.'
     /* ar.title intentionally omitted so the “put your title here” placeholder stays, prompting a mirror/edit */
   };
-  return {en, ar};
+  return withCapLen({en, ar});
 }
 function copyPrompt(topic, mod){
   return `You are the clinical content strategist for CuraNova, a Beirut-based specialized home wound care and diabetic foot nursing service run by registered nurses. Audience: Lebanese patients, their families, and referring physicians.
@@ -1150,9 +1175,13 @@ Layout module: "${mod}".
 Rules:
 - Clinically accurate and patient-safe. No diagnosis, no drug names, no dosing, no promises of healing, no fear-mongering.
 - Encourage professional assessment where appropriate.
-- English: plain, warm, 8th-grade reading level. Arabic: Modern Standard Arabic that reads naturally to a Lebanese reader, not a literal translation.
+${state.tone==='clinician'
+  ? '- Voice: professional and precise, suitable for referring physicians and informed patients. Correct clinical terms are fine when they add precision; English reading level is professional adult. Arabic: Modern Standard Arabic that reads naturally to a Lebanese clinician.'
+  : '- Voice: warm, plain and reassuring for patients and families; avoid jargon. English: 8th-grade reading level. Arabic: Modern Standard Arabic that reads naturally to a Lebanese reader, not a literal translation.'}
 - Title max 9 words. Body max 28 words. Each list item max 9 words. Eyebrow max 3 words.
-- caption: 3 short lines plus a closing line inviting a WhatsApp message. hashtags: 8 tags, mixed English and Arabic.
+- ${ {short:'caption: 1 short line plus a closing line inviting a WhatsApp message. hashtags: 6 tags, mixed English and Arabic.',
+      standard:'caption: 3 short lines plus a closing line inviting a WhatsApp message. hashtags: 8 tags, mixed English and Arabic.',
+      long:'caption: 4 to 5 short lines with a little more helpful context, plus a closing line inviting a WhatsApp message. hashtags: 10 tags, mixed English and Arabic.'}[state.capLen] }
 
 Return ONLY minified JSON, no markdown fence, exactly these keys:
 {"en":{"eyebrow":"","title":"","body":"","cta":"","items":["","",""],"myth":"","fact":"","stat":"","statLabel":"","attrib":"","beforeLbl":"","afterLbl":"","caption":"","hashtags":[]},"ar":{ same keys }}
@@ -1240,6 +1269,18 @@ function aiStatus(){
   k.addEventListener('input', () => { try { localStorage.setItem(AIKEY_KEY, k.value.trim()); } catch(_){} aiStatus(); });
   m.addEventListener('input', () => { try { localStorage.setItem(AIMODEL_KEY, m.value.trim()); } catch(_){} aiStatus(); });
   aiStatus();
+})();
+/* Voice & caption-length controls (studio-wide; restored from autosave) */
+function syncTone(){
+  const tn = document.getElementById('tone'), cl = document.getElementById('capLen');
+  if(tn) tn.value = state.tone;
+  if(cl) cl.value = state.capLen;
+}
+(function initTone(){
+  const tn = document.getElementById('tone'), cl = document.getElementById('capLen');
+  tn.addEventListener('change', () => { state.tone = tn.value; });
+  cl.addEventListener('change', () => { state.capLen = cl.value; });
+  syncTone();
 })();
 /* Content library picker */
 function loadLibrary(i, asNew){
@@ -1388,7 +1429,8 @@ function packState(strip){
     return c;
   });
   return {v:1, fmt:state.fmt, lang:state.lang, style:state.style, texture:state.texture,
-          texAlpha:state.texAlpha, view:state.view, active:state.active, brand:state.brand, slides};
+          texAlpha:state.texAlpha, view:state.view, tone:state.tone, capLen:state.capLen,
+          active:state.active, brand:state.brand, slides};
 }
 function applyPack(d){
   if(!d || !d.slides || !d.slides.length) return false;
@@ -1407,6 +1449,8 @@ function applyPack(d){
   if(d.lang) state.lang = d.lang;
   if(d.style) state.style = d.style;
   if(d.texture) state.texture = d.texture;
+  if(d.tone) state.tone = d.tone;
+  if(d.capLen) state.capLen = d.capLen;
   if(typeof d.texAlpha === 'number') state.texAlpha = d.texAlpha;
   if(d.view) state.view = d.view;
   state.active = Math.min(Math.max(0, d.active || 0), state.slides.length - 1);
@@ -1499,6 +1543,7 @@ document.getElementById('verList').addEventListener('click', e => {
 const restored = restoreAuto();
 document.body.classList.toggle('gridview', state.view === 'grid');
 stage.classList.toggle('thumb', state.thumb);
+syncTone();
 toolbars(); panel(); render();
 renderVersions();
 if(!HAS_LS) autoStat('Autosave is unavailable in this browser (private mode or storage blocked).');
