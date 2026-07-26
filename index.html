@@ -606,7 +606,12 @@ function bgSvg(w,h,navy,cs,comp,sw){
     </svg>`;
   }
   const V = SWOOSHES[sw] || SWOOSHES.a;
-  const dW = curve(V.W,w,h,cs), dT = curve(V.T,w,h,cs);
+  /* Shorten the footer swoosh: compress the curve toward the bottom (flatter,
+     lower) so it stops crowding the message and clearing long text, while the
+     white/navy boundary stays above the footer so its text stays legible. */
+  const SW_S = 0.58, SW_F = 0.07;
+  const lo = pts => pts.map(([fx,fy]) => [fx, fy*SW_S + SW_F]);
+  const dW = curve(lo(V.W),w,h,cs), dT = curve(lo(V.T),w,h,cs);
   const wedge = V.corner ? `<path d="M${w},0 L${w},${300*u} C ${w-28*u},${152*u} ${w-134*u},${38*u} ${w-288*u},0 Z" fill="#10938E"/>
    <path d="M${w},0 L${w},${252*u} C ${w-24*u},${124*u} ${w-116*u},${26*u} ${w-246*u},0 Z" fill="${navy?'#FFFFFF':'#183C64'}"/>` : '';
   return `<svg class="bg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
