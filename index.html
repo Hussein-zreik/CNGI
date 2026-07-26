@@ -268,6 +268,10 @@ body.gridview .stage{display:none}
           <option value="long">Long</option>
         </select></div>
       </div>
+      <div class="fld" style="margin-bottom:8px"><label for="dialect">Arabic style</label><select id="dialect">
+        <option value="msa">Modern Standard (فصحى)</option>
+        <option value="leb">Lebanese dialect (لهجة لبنانية)</option>
+      </select></div>
       <div class="two">
         <button class="btn" id="genBtn">Write this post</button>
         <button class="btn ghost" id="batchBtn">Batch all lines</button>
@@ -471,7 +475,7 @@ const DISCLAIMER = {en:'Educational content — not a substitute for clinical as
                     ar:'محتوى تثقيفي ولا يغني عن التقييم السريري.'};
 const state = {
   fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6,
-  tone:'patient', capLen:'standard',
+  tone:'patient', capLen:'standard', dialect:'msa',
   brand:{
     en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'Home visits in Beirut & nearby areas'},
     ar:{tag:'رعاية متخصصة للجروح والقدم السكرية في المنزل', c1:'واتساب ٧٩ ٠٩٣ ٥٩٩ ٩٦١+', c2:'زيارات منزلية في بيروت والمناطق المجاورة'}
@@ -581,21 +585,25 @@ function phStyle(p, boxW, boxH){
 /* ================= canvas painting ================= */
 function moduleHtml(slide, lang, f, u){
   const c = slide[lang], m = slide.module;
-  const eyebrow = c.eyebrow ? `<span class="eyebrow">${esc(c.eyebrow)}</span>` : '';
+  /* In Arabic, render Western digits as Arabic-Indic for a cleaner RTL look. */
+  const D = s => lang==='ar' ? String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]) : String(s);
+  const E = s => D(esc(s));
+  const H = s => D(hl(s));
+  const eyebrow = c.eyebrow ? `<span class="eyebrow">${E(c.eyebrow)}</span>` : '';
   const items = (c.items||[]).filter(t => String(t).trim());
   const padX = state.style==='refined' ? 0 : 54*u, padY = state.style==='refined' ? 0 : 36*u;
   const innerW = f.w - 2*78*u - 2*padX;
   const innerH = (f.h - f.frameTop*u - f.frameBot*u) - 2*padY;
-  const bar = slide.scaleBar ? `<div class="scalebar"><i></i><span>1 cm</span></div>` : '';
+  const bar = slide.scaleBar ? `<div class="scalebar"><i></i><span>${lang==='ar'?'١ سم':'1 cm'}</span></div>` : '';
 
   if(m === 'photofull'){
-    return eyebrow + `<h1 class="title">${hl(c.title)}</h1><div class="rule"></div><p class="body">${hl(c.body)}</p>`;
+    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
   }
   if(m === 'photosplit'){
     const bh = Math.round(innerH * 0.46);
     return `<div class="phbox" style="height:${bh}px;${phStyle(slide.photos[0], innerW, bh)}">${bar}</div>
-      <div style="height:${28*u}px"></div>` + eyebrow + `<h1 class="title">${hl(c.title)}</h1>
-      <div class="rule"></div><p class="body">${hl(c.body)}</p>`;
+      <div style="height:${28*u}px"></div>` + eyebrow + `<h1 class="title">${H(c.title)}</h1>
+      <div class="rule"></div><p class="body">${H(c.body)}</p>`;
   }
   if(m === 'beforeafter'){
     const bw = (innerW - 22*u)/2, bh = Math.round(innerH * 0.62);
@@ -603,29 +611,29 @@ function moduleHtml(slide, lang, f, u){
         <div class="phbox" style="height:${bh}px;${phStyle(slide.photos[0], bw, bh)}"><span class="lbl">${lang==='ar'?'قبل':'Before'}</span>${bar}</div>
         <div class="phbox" style="height:${bh}px;${phStyle(slide.photos[1], bw, bh)}"><span class="lbl">${lang==='ar'?'بعد':'After'}</span>${bar}</div>
       </div>
-      <div class="balabel"><span>${esc(c.beforeLbl)}</span><span>${esc(c.afterLbl)}</span></div>
-      <div class="rule"></div><p class="body">${hl(c.body)}</p>`;
+      <div class="balabel"><span>${E(c.beforeLbl)}</span><span>${E(c.afterLbl)}</span></div>
+      <div class="rule"></div><p class="body">${H(c.body)}</p>`;
   }
   if(m === 'steps')
-    return eyebrow + `<h1 class="title">${hl(c.title)}</h1><div class="rule"></div>
-      <ol class="steps">${items.map((t,i)=>`<li><span class="n">${num(i+1,lang)}</span><span>${esc(t)}</span></li>`).join('')}</ol>`;
+    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
+      <ol class="steps">${items.map((t,i)=>`<li><span class="n">${num(i+1,lang)}</span><span>${E(t)}</span></li>`).join('')}</ol>`;
   if(m === 'checklist')
-    return eyebrow + `<h1 class="title">${hl(c.title)}</h1><div class="rule"></div>
-      <ul class="checks">${items.map(t=>`<li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 13l5 5L20 6"/></svg></span><span>${esc(t)}</span></li>`).join('')}</ul>`;
+    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
+      <ul class="checks">${items.map(t=>`<li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 13l5 5L20 6"/></svg></span><span>${E(t)}</span></li>`).join('')}</ul>`;
   if(m === 'myth')
-    return eyebrow + `<h1 class="title">${hl(c.title)}</h1><div class="rule"></div>
+    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
       <div class="split">
-        <div class="col m"><div class="cap">${lang==='ar'?'اعتقاد شائع':'Myth'}</div><div class="txt">${esc(c.myth)}</div></div>
+        <div class="col m"><div class="cap">${lang==='ar'?'اعتقاد شائع':'Myth'}</div><div class="txt">${E(c.myth)}</div></div>
         <div class="div"></div>
-        <div class="col f"><div class="cap">${lang==='ar'?'الحقيقة':'Fact'}</div><div class="txt">${esc(c.fact)}</div></div>
+        <div class="col f"><div class="cap">${lang==='ar'?'الحقيقة':'Fact'}</div><div class="txt">${E(c.fact)}</div></div>
       </div>`;
   if(m === 'stat')
-    return eyebrow + `<p class="stat">${esc(c.stat)}</p><p class="statlabel">${esc(c.statLabel)}</p>
-      <div class="rule"></div><p class="body">${hl(c.body)}</p>`;
+    return eyebrow + `<p class="stat">${E(c.stat)}</p><p class="statlabel">${E(c.statLabel)}</p>
+      <div class="rule"></div><p class="body">${H(c.body)}</p>`;
   if(m === 'quote')
     return `<div class="quotemark">&ldquo;</div>` + eyebrow +
-      `<h1 class="title">${hl(c.title)}</h1><p class="attrib">${esc(c.attrib)}</p>`;
-  return eyebrow + `<h1 class="title">${hl(c.title)}</h1><div class="rule"></div><p class="body">${hl(c.body)}</p>`;
+      `<h1 class="title">${H(c.title)}</h1><p class="attrib">${E(c.attrib)}</p>`;
+  return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
 }
 
 function paint(el, slide, f, lang){
@@ -1206,8 +1214,11 @@ Rules:
 - Clinically accurate and patient-safe. No diagnosis, no drug names, no dosing, no promises of healing, no fear-mongering.
 - Encourage professional assessment where appropriate.
 ${state.tone==='clinician'
-  ? '- Voice: professional and precise, suitable for referring physicians and informed patients. Correct clinical terms are fine when they add precision; English reading level is professional adult. Arabic: Modern Standard Arabic that reads naturally to a Lebanese clinician.'
-  : '- Voice: warm, plain and reassuring for patients and families; avoid jargon. English: 8th-grade reading level. Arabic: Modern Standard Arabic that reads naturally to a Lebanese reader, not a literal translation.'}
+  ? '- Voice: professional and precise, suitable for referring physicians and informed patients. Correct clinical terms are fine when they add precision; English reading level is professional adult.'
+  : '- Voice: warm, plain and reassuring for patients and families; avoid jargon. English: 8th-grade reading level.'}
+${state.dialect==='leb'
+  ? '- Arabic: warm Lebanese spoken dialect (لهجة لبنانية) as used by Lebanese health pages on social media — natural and friendly, never a literal translation. Use Arabic-Indic numerals (٠١٢٣).'
+  : '- Arabic: clear Modern Standard Arabic (فصحى) that reads naturally to a Lebanese reader, not a literal translation. Use Arabic-Indic numerals (٠١٢٣).'}
 - Title max 9 words. Body max 28 words. Each list item max 9 words. Eyebrow max 3 words.
 - ${ {short:'caption: 1 short line plus a closing line inviting a WhatsApp message. hashtags: 6 tags, mixed English and Arabic.',
       standard:'caption: 3 short lines plus a closing line inviting a WhatsApp message. hashtags: 8 tags, mixed English and Arabic.',
@@ -1304,8 +1315,9 @@ document.getElementById('transBtn').onclick = async () => {
   if(!aiKey()) return note('Add an Anthropic API key under “AI copy settings” to mirror languages. Offline drafts already fill both sides — refine the other language by hand.');
   const btn = document.getElementById('transBtn'); btn.disabled = true; btn.textContent = 'Mirroring…';
   const src = S()[from];
-  const p = `Adapt this CuraNova clinical social post from ${from==='en'?'English into Modern Standard Arabic':'Arabic into English'}.
-Keep the meaning and the clinical caution; write naturally for a Lebanese reader rather than translating literally. Keep any *asterisks* around a highlighted word.
+  const arTarget = state.dialect==='leb' ? 'Lebanese spoken Arabic (لهجة لبنانية)' : 'Modern Standard Arabic (فصحى)';
+  const p = `Adapt this CuraNova clinical social post from ${from==='en' ? 'English into ' + arTarget : 'Arabic into English'}.
+Keep the meaning and the clinical caution; write naturally for a Lebanese reader rather than translating literally. Keep any *asterisks* around a highlighted word.${to==='ar' ? ' Use Arabic-Indic numerals (٠١٢٣).' : ''}
 Source: ${JSON.stringify({eyebrow:src.eyebrow,title:src.title,body:src.body,cta:src.cta,items:src.items,myth:src.myth,fact:src.fact,statLabel:src.statLabel,attrib:src.attrib,beforeLbl:src.beforeLbl,afterLbl:src.afterLbl,caption:src.caption})}
 Return ONLY minified JSON with those same keys.`;
   try{
@@ -1334,14 +1346,16 @@ function aiStatus(){
 })();
 /* Voice & caption-length controls (studio-wide; restored from autosave) */
 function syncTone(){
-  const tn = document.getElementById('tone'), cl = document.getElementById('capLen');
+  const tn = document.getElementById('tone'), cl = document.getElementById('capLen'), dl = document.getElementById('dialect');
   if(tn) tn.value = state.tone;
   if(cl) cl.value = state.capLen;
+  if(dl) dl.value = state.dialect;
 }
 (function initTone(){
-  const tn = document.getElementById('tone'), cl = document.getElementById('capLen');
+  const tn = document.getElementById('tone'), cl = document.getElementById('capLen'), dl = document.getElementById('dialect');
   tn.addEventListener('change', () => { state.tone = tn.value; });
   cl.addEventListener('change', () => { state.capLen = cl.value; });
+  dl.addEventListener('change', () => { state.dialect = dl.value; });
   syncTone();
 })();
 /* Content library picker */
@@ -1492,7 +1506,7 @@ function packState(strip){
   });
   return {v:1, fmt:state.fmt, lang:state.lang, style:state.style, texture:state.texture,
           texAlpha:state.texAlpha, view:state.view, tone:state.tone, capLen:state.capLen,
-          active:state.active, brand:state.brand, slides};
+          dialect:state.dialect, active:state.active, brand:state.brand, slides};
 }
 function applyPack(d){
   if(!d || !d.slides || !d.slides.length) return false;
@@ -1513,6 +1527,7 @@ function applyPack(d){
   if(d.texture) state.texture = d.texture;
   if(d.tone) state.tone = d.tone;
   if(d.capLen) state.capLen = d.capLen;
+  if(d.dialect) state.dialect = d.dialect;
   if(typeof d.texAlpha === 'number') state.texAlpha = d.texAlpha;
   if(d.view) state.view = d.view;
   state.active = Math.min(Math.max(0, d.active || 0), state.slides.length - 1);
