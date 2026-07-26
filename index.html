@@ -219,6 +219,10 @@ body.gridview .stage{display:none}
 .vermeta span{font-size:10.5px;color:#8496A6}
 .veract{display:flex;gap:5px;flex:0 0 auto}
 .veract .chip{padding:5px 9px;font-size:11px}
+.aikey{margin-top:10px;border:1px solid #E4EAF0;border-radius:8px;padding:9px 11px;background:#FAFCFE}
+.aikey summary{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7A8B9C;cursor:pointer;list-style:none}
+.aikey summary::-webkit-details-marker{display:none}
+.aikey[open] summary{margin-bottom:8px}
 .gen{background:#F4FAFA;border:1px solid #D6ECEB;border-radius:10px;padding:14px;margin-bottom:6px}
 .cap{white-space:pre-wrap;font-size:12px;line-height:1.55;color:var(--navy);background:#FAFCFE;border:1px solid #DCE4EC;border-radius:8px;padding:10px;max-height:190px;overflow:auto}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;margin-bottom:7px}
@@ -253,6 +257,18 @@ body.gridview .stage{display:none}
       </div>
       <button class="btn ghost" id="transBtn">Mirror into the other language</button>
       <p class="note" id="genNote">Drafts eyebrow, title, body, CTA and caption in English + Arabic. Review every clinical claim before posting.</p>
+      <details class="aikey">
+        <summary>AI copy settings</summary>
+        <div class="fld" style="margin-bottom:8px">
+          <label for="apiKey">Anthropic API key — optional</label>
+          <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="fld" style="margin-bottom:6px">
+          <label for="apiModel">Model</label>
+          <input id="apiModel" placeholder="claude-sonnet-5" spellcheck="false">
+        </div>
+        <p class="note" id="aiNote" style="margin-top:0"></p>
+      </details>
     </div>
 
     <div class="sec">
@@ -935,14 +951,68 @@ function gate(){
 }
 
 /* ================= Claude copy ================= */
+const AIKEY_KEY = 'curanova.ai.key', AIMODEL_KEY = 'curanova.ai.model', DEFAULT_MODEL = 'claude-sonnet-5';
+function aiKey(){ try{ return (localStorage.getItem(AIKEY_KEY) || '').trim(); }catch(_){ return ''; } }
+function aiModel(){ try{ return (localStorage.getItem(AIMODEL_KEY) || '').trim() || DEFAULT_MODEL; }catch(_){ return DEFAULT_MODEL; } }
 async function callClaude(prompt){
+  const key = aiKey();
+  if(!key) throw new Error('no API key');
   const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({model:"claude-sonnet-4-6", max_tokens:1200, messages:[{role:"user", content:prompt}]})
+    method:"POST",
+    headers:{
+      "content-type":"application/json",
+      "x-api-key":key,
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body: JSON.stringify({model:aiModel(), max_tokens:1200, messages:[{role:"user", content:prompt}]})
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
   const text = (data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
-  return JSON.parse(text.replace(/```json|```/g,'').trim());
+  try { return JSON.parse(text.replace(/```json|```/g,'').trim()); }
+  catch(_){ throw new Error('unexpected response format'); }
+}
+/* Offline draft — works with no key or network. English is topic-derived;
+   Arabic is a clinical scaffold to refine or mirror. */
+function templateCopy(topic, mod){
+  const t = (topic||'').trim();
+  const tc = t.replace(/\s+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+  const low = t.toLowerCase();
+  const EB = {standard:'Wound Care Tip', steps:'How To', checklist:'Checklist', myth:'Myth vs Fact',
+    stat:'By The Numbers', quote:'Patient Voice', photofull:'Case Note', photosplit:'Case Note', beforeafter:'Progress'};
+  const EBA = {standard:'نصيحة للعناية بالجروح', steps:'خطوة بخطوة', checklist:'قائمة تحقّق', myth:'خرافة وحقيقة',
+    stat:'بالأرقام', quote:'صوت المريض', photofull:'ملاحظة سريرية', photosplit:'ملاحظة سريرية', beforeafter:'التقدّم'};
+  const tags = ['#WoundCare','#DiabeticFoot','#Beirut','#HomeCare','#NurseLed','#رعاية_الجروح','#القدم_السكري','#بيروت'];
+  const en = {
+    eyebrow: EB[mod] || 'Wound Care Tip',
+    title: tc || 'Your title goes *here*',
+    body: t ? `A quick, practical look at ${low} — and when it is time to ask a professional.`
+            : 'One or two short sentences that carry the takeaway.',
+    cta: 'Message us on WhatsApp',
+    items: ['Watch for early changes','Keep the area clean and dry','Ask a nurse if you are unsure'],
+    myth: 'A common belief patients mention.',
+    fact: 'What current evidence actually supports.',
+    statLabel: tc || 'Label for the figure',
+    attrib: '— Patient, Beirut',
+    beforeLbl: 'Before', afterLbl: 'After',
+    caption: `${tc || 'Wound care tip'}.\n\nEducational tips from CuraNova's home wound-care nurses in Beirut.\n\nQuestions? Message us on WhatsApp.`,
+    hashtags: tags
+  };
+  const ar = {
+    eyebrow: EBA[mod] || 'نصيحة للعناية بالجروح',
+    body: 'نظرة عملية سريعة، ومتى تنبغي استشارة المختص.',
+    cta: 'راسلنا عبر واتساب',
+    items: ['راقب أي تغيّر مبكر','حافظ على نظافة المكان وجفافه','استشر ممرضاً عند الشك'],
+    myth: 'اعتقاد شائع بين المرضى.',
+    fact: 'ما يدعمه الدليل العلمي فعلاً.',
+    statLabel: 'وصف الرقم',
+    attrib: '— مريض، بيروت',
+    beforeLbl: 'قبل', afterLbl: 'بعد',
+    caption: 'محتوى تثقيفي من ممرّضي CuraNova للعناية بالجروح في المنزل ببيروت.\n\nلأي سؤال، راسلنا عبر واتساب.'
+    /* ar.title intentionally omitted so the “put your title here” placeholder stays, prompting a mirror/edit */
+  };
+  return {en, ar};
 }
 function copyPrompt(topic, mod){
   return `You are the clinical content strategist for CuraNova, a Beirut-based specialized home wound care and diabetic foot nursing service run by registered nurses. Audience: Lebanese patients, their families, and referring physicians.
@@ -973,13 +1043,23 @@ function applyCopy(slide, json){
   });
 }
 const note = m => document.getElementById('genNote').textContent = m;
+/* Draft one slide: AI when a key is set, otherwise offline templates; on an
+   AI error, fall back to templates so the button always produces a draft. */
+async function draftOne(topic, mod){
+  if(aiKey()){
+    try { return {json: await callClaude(copyPrompt(topic, mod)), via:'AI'}; }
+    catch(err){ return {json: templateCopy(topic, mod), via:'templates (AI error: ' + (err.message||'failed') + ')'}; }
+  }
+  return {json: templateCopy(topic, mod), via:'offline templates'};
+}
 document.getElementById('genBtn').onclick = async () => {
   const topic = document.getElementById('topic').value.split('\n')[0].trim();
   if(!topic) return note('Type a topic first.');
-  const btn = document.getElementById('genBtn'); btn.disabled = true; btn.textContent = 'Writing…'; note('Drafting English and Arabic…');
-  try{ applyCopy(S(), await callClaude(copyPrompt(topic, S().module))); panel(); render();
-       note('Draft ready in both languages. Verify the clinical content before publishing.'); }
-  catch(err){ note('Copy generation unavailable here — the studio still works as a manual editor. (' + (err.message||'network error') + ')'); }
+  const btn = document.getElementById('genBtn'); btn.disabled = true; btn.textContent = 'Writing…';
+  note(aiKey() ? 'Drafting English and Arabic…' : 'Drafting from offline templates…');
+  const {json, via} = await draftOne(topic, S().module);
+  applyCopy(S(), json); panel(); render();
+  note('Draft ready via ' + via + '. Verify the clinical content before publishing.');
   btn.disabled = false; btn.textContent = 'Write this post';
 };
 document.getElementById('batchBtn').onclick = async () => {
@@ -993,16 +1073,17 @@ document.getElementById('batchBtn').onclick = async () => {
     if(i === 0){ slide = S(); }
     else { slide = blankSlide(); slide.module = mod; slide.theme = S().theme; slide.comp = S().comp;
            state.slides.push(slide); state.active = state.slides.length-1; }
-    try{ applyCopy(slide, await callClaude(copyPrompt(lines[i], mod))); }
-    catch(err){ note('Stopped at line ' + (i+1) + ': ' + (err.message||'network error')); break; }
+    const {json} = await draftOne(lines[i], mod);
+    applyCopy(slide, json);
     toolbars(); panel(); render();
     await new Promise(r=>setTimeout(r,250));
   }
   btn.disabled = false; btn.textContent = 'Batch all lines';
-  note('Batch finished. Review each slide before exporting.');
+  note('Batch finished (' + (aiKey() ? 'AI' : 'offline templates') + '). Review each slide before exporting.');
 };
 document.getElementById('transBtn').onclick = async () => {
   const from = state.lang, to = from==='en' ? 'ar' : 'en';
+  if(!aiKey()) return note('Add an Anthropic API key under “AI copy settings” to mirror languages. Offline drafts already fill both sides — refine the other language by hand.');
   const btn = document.getElementById('transBtn'); btn.disabled = true; btn.textContent = 'Mirroring…';
   const src = S()[from];
   const p = `Adapt this CuraNova clinical social post from ${from==='en'?'English into Modern Standard Arabic':'Arabic into English'}.
@@ -1014,9 +1095,25 @@ Return ONLY minified JSON with those same keys.`;
     Object.keys(j).forEach(k => { if(j[k]) S()[to][k] = j[k]; });
     note('Mirrored into ' + (to==='ar'?'Arabic':'English') + '. Read it once before publishing.');
     panel(); render();
-  }catch(err){ note('Mirroring unavailable here. (' + (err.message||'network error') + ')'); }
+  }catch(err){ note('Mirroring failed: ' + (err.message||'network error') + '.'); }
   btn.disabled = false; btn.textContent = 'Mirror into the other language';
 };
+/* API key / model wiring — stored only in this browser, never in exports or history. */
+function aiStatus(){
+  const el = document.getElementById('aiNote'); if(!el) return;
+  el.innerHTML = aiKey()
+    ? 'Live AI on · model <b>' + esc(aiModel()) + '</b>. Key is stored only in this browser and sent straight to Anthropic.'
+    : 'No key set — “Write this post” uses built-in <b>offline templates</b>. Add your Anthropic key for AI drafting in both languages.';
+}
+(function initAI(){
+  const k = document.getElementById('apiKey'), m = document.getElementById('apiModel');
+  try { k.value = localStorage.getItem(AIKEY_KEY) || ''; } catch(_){}
+  try { m.value = localStorage.getItem(AIMODEL_KEY) || ''; } catch(_){}
+  m.placeholder = DEFAULT_MODEL;
+  k.addEventListener('input', () => { try { localStorage.setItem(AIKEY_KEY, k.value.trim()); } catch(_){} aiStatus(); });
+  m.addEventListener('input', () => { try { localStorage.setItem(AIMODEL_KEY, m.value.trim()); } catch(_){} aiStatus(); });
+  aiStatus();
+})();
 
 /* ================= export ================= */
 function saveAs(url,name){ const a=document.createElement('a'); a.href=url; a.download=name; a.click(); }
