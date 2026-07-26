@@ -145,10 +145,11 @@ body.gridview .stage{display:none}
 
 .action{position:absolute;left:calc(78px*var(--u));right:calc(78px*var(--u));top:var(--actTop);height:calc(94px*var(--u));display:flex;align-items:center}
 .footer{position:absolute;left:calc(78px*var(--u));right:calc(78px*var(--u));top:var(--footTop);height:calc(94px*var(--u));display:flex;align-items:center;justify-content:flex-start}
-.cta{display:flex;align-items:center;gap:calc(18px*var(--u))}
-.cta .ic{width:calc(54px*var(--u));height:calc(54px*var(--u));border-radius:50%;background:var(--teal);border:calc(1.6px*var(--u)) solid var(--teal);display:flex;align-items:center;justify-content:center;flex:0 0 calc(54px*var(--u))}
-.cta .ic svg{width:calc(24px*var(--u));height:calc(24px*var(--u));stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.cta .txt{color:#fff;font-size:calc(30px*var(--u));font-weight:600}
+.cta{display:inline-flex;align-items:center;gap:calc(14px*var(--u));padding:calc(15px*var(--u)) calc(32px*var(--u));border-radius:100px}
+.cta .ic{width:calc(30px*var(--u));height:calc(30px*var(--u));flex:0 0 auto;display:flex}
+.cta .ic svg{width:100%;height:100%;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.post.rtl .cta .ic svg{transform:scaleX(-1)}
+.cta .txt{color:#fff;font-size:calc(30px*var(--u));font-weight:700}
 .contact{text-align:left;color:#fff}
 .post.rtl .contact{text-align:right}
 .contact .l1{font-size:calc(25px*var(--u));font-weight:600}
@@ -197,9 +198,16 @@ body.gridview .stage{display:none}
 .post.navy .checks .tick svg{stroke:var(--teal-lt)}
 .post.navy .steps .n{background:var(--teal-lt)}
 .post.navy .quotemark{color:rgba(24,183,176,.15)}
-.post.footdark .cta .ic{background:var(--teal);border-color:var(--teal)}
-.post.footdark .cta .ic svg{stroke:#fff}
-.post.footdark .cta .txt,.post.footdark .contact{color:var(--navy)}
+.post.footdark .contact{color:var(--navy)}
+/* dynamic CTA colour by post goal (soft/bold/navy pill, or minimal text) */
+.post.goal-bold .cta{background:var(--teal)}
+.post.goal-soft .cta{background:var(--teal-lt)}
+.post.goal-navy .cta{background:var(--navy-deep);box-shadow:inset 0 0 0 calc(2px*var(--u)) var(--teal-lt)}
+.post.goal-minimal .cta{background:none;padding:0;gap:calc(12px*var(--u))}
+.post.goal-bold .cta .txt,.post.goal-soft .cta .txt,.post.goal-navy .cta .txt{color:#fff}
+.post.goal-bold .cta .ic svg,.post.goal-soft .cta .ic svg,.post.goal-navy .cta .ic svg{stroke:#fff}
+.post.goal-minimal .cta .txt{color:#fff}.post.goal-minimal .cta .ic svg{stroke:#fff}
+.post.footdark.goal-minimal .cta .txt{color:var(--navy)}.post.footdark.goal-minimal .cta .ic svg{stroke:var(--navy)}
 .post.footdark .contact .l2{color:rgba(24,60,100,.62)}
 
 .safe{position:absolute;inset:0;pointer-events:none;display:none}
@@ -260,6 +268,11 @@ body.gridview .stage{display:none}
 .tagchips button.on{background:rgba(16,147,142,.12);border-color:var(--teal);color:var(--teal)}
 .tagchips button.add:hover{border-color:var(--teal);color:var(--teal)}
 .tagchips .empty{font-size:11px;color:#8496A6}
+.ctasug{background:#F4FAFA;border:1px solid #D6ECEB;border-radius:10px;padding:11px 12px;margin-top:8px}
+.ctasug .stars{color:#E0A72C;font-size:13px;letter-spacing:2px}
+.ctasug .sug-cta{font-size:13px;font-weight:700;color:var(--navy);margin:5px 0 3px}
+.ctasug .sug-reason{font-size:11px;color:#7A8B9C;line-height:1.45}
+.ctasug .btn{margin-top:9px}
 .gen{background:#F4FAFA;border:1px solid #D6ECEB;border-radius:10px;padding:14px;margin-bottom:6px}
 .cap{white-space:pre-wrap;font-size:12px;line-height:1.55;color:var(--navy);background:#FAFCFE;border:1px solid #DCE4EC;border-radius:8px;padding:10px;max-height:190px;overflow:auto}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;margin-bottom:7px}
@@ -334,6 +347,21 @@ body.gridview .stage{display:none}
         <button class="btn ghost" id="libAdd">Add as new slide</button>
       </div>
       <p class="note">Pre-written, bilingual starting points that need no AI. Review every clinical claim, and add your own consent/source, before publishing.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Smart CTA</h3>
+      <div class="fld"><label for="goal">Post goal</label><select id="goal">
+        <option value="education">Education</option>
+        <option value="promotion">Promotion</option>
+        <option value="referral">Referral</option>
+        <option value="recruitment">Recruitment</option>
+        <option value="event">Event</option>
+        <option value="awareness">Awareness</option>
+      </select></div>
+      <div id="ctaSuggest" class="ctasug"></div>
+      <div class="tglabel" style="margin-top:10px">Tap to use</div>
+      <div id="ctaChips" class="tagchips"></div>
     </div>
 
     <div class="sec">
@@ -506,7 +534,7 @@ const PHOTO_MODULES = ['photofull','photosplit','beforeafter'];
 const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, aspect:1.5});
 const blankSlide = () => ({
   module:'standard', theme:'light', comp:'swoosh', swoosh:'a', disclaimer:false,
-  waOn:false, waNum:'+961 79 093 599',
+  goal:'education', waOn:false, waNum:'+961 79 093 599',
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
@@ -525,6 +553,43 @@ const blankSlide = () => ({
 });
 const DISCLAIMER = {en:'Educational content — not a substitute for clinical assessment.',
                     ar:'محتوى تثقيفي ولا يغني عن التقييم السريري.'};
+/* Intelligent CTA generator: post goal -> context CTAs + a colour style. */
+const GOALS = {
+  education:  {label:'Education',   style:'soft',
+    ctas:{en:['Save this guide.','Share with someone at risk.','Know the warning signs.','Learn more.','Stay informed.'],
+          ar:['احفظ هذا الدليل.','شاركه مع شخص معرّض للخطر.','اعرف العلامات التحذيرية.','اعرف المزيد.','ابقَ على اطلاع.']}},
+  promotion:  {label:'Promotion',   style:'bold',
+    ctas:{en:['Book a home assessment.','Message us today.','Schedule your consultation.','Contact CuraNova.'],
+          ar:['احجز تقييماً منزلياً.','راسلنا اليوم.','احجز استشارتك.','تواصل مع CuraNova.']}},
+  referral:   {label:'Referral',    style:'navy',
+    ctas:{en:['Refer your patient today.','Clinical support available.','Discuss your case.','Partner with CuraNova.'],
+          ar:['أحل مريضك اليوم.','دعم سريري متاح.','ناقش حالتك.','كن شريكاً لـ CuraNova.']}},
+  recruitment:{label:'Recruitment', style:'bold',
+    ctas:{en:['Join our team.','Apply today.','Become part of CuraNova.'],
+          ar:['انضم إلى فريقنا.','قدّم اليوم.','كن جزءاً من CuraNova.']}},
+  event:      {label:'Event',       style:'bold',
+    ctas:{en:['Save your spot.','Register now.','Join us live.','Reserve your place.'],
+          ar:['احجز مكانك.','سجّل الآن.','انضم إلينا مباشرة.','احجز مقعدك.']}},
+  awareness:  {label:'Awareness',   style:'minimal',
+    ctas:{en:['Spread the word.','Share to raise awareness.','Start the conversation.','Pass it on.'],
+          ar:['انشر الكلمة.','شارك لرفع الوعي.','ابدأ الحديث.','مرّرها للآخرين.']}}
+};
+function ctaSuggest(goal, lang){
+  const g = GOALS[goal] || GOALS.education;
+  const hay = (((document.getElementById('topic')||{}).value||'') + ' ' + (S().en.title||'') + ' ' + (S().ar.title||'')).toLowerCase();
+  const foot = /foot|diabet|قدم|سكري/.test(hay), wound = /wound|جرح|dressing|ضماد/.test(hay), signs = /sign|infect|warn|علامة|التهاب|تحذير/.test(hay);
+  let cta = g.ctas[lang][0], reason = 'A clear call to action for this goal.', stars = 4;
+  if(goal === 'promotion'){
+    if(foot){ cta = lang==='ar' ? 'احجز تقييماً للقدم السكرية اليوم.' : 'Book a diabetic foot assessment today.'; reason = 'Matches promotional diabetic-foot content.'; stars = 5; }
+    else if(wound){ cta = lang==='ar' ? 'اطلب تقييماً منزلياً للجرح.' : 'Request a home wound assessment.'; reason = 'Matches promotional wound-care content.'; stars = 5; }
+    else { reason = 'Direct, service-oriented call to action.'; stars = 4; }
+  } else if(goal === 'referral'){ reason = 'Speaks directly to referring clinicians.'; stars = 5; }
+  else if(goal === 'education'){ if(signs){ cta = lang==='ar' ? 'اعرف العلامات التحذيرية.' : 'Know the warning signs.'; reason = 'Matches educational warning-signs content.'; stars = 5; } else { reason = 'Encourages saving and learning.'; stars = 4; } }
+  else if(goal === 'recruitment'){ reason = 'Invites the right people to apply.'; stars = 4; }
+  else if(goal === 'event'){ reason = 'Drives event registration.'; stars = 4; }
+  else if(goal === 'awareness'){ reason = 'Encourages sharing to raise awareness.'; stars = 4; }
+  return {cta, reason, stars};
+}
 const state = {
   fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6,
   tone:'patient', capLen:'standard', dialect:'msa',
@@ -708,7 +773,8 @@ function paint(el, slide, f, lang){
   const footWhite = (f.footWhite || slide.comp === 'watermark') && !photoFull;
   const footdark = photoFull ? false : (!!footWhite !== navy);
   el.className = 'post' + (navy?' navy':'') + (photoFull?' photo':'') + (footdark?' footdark':'')
-               + (state.style==='refined'?' refined':'') + (lang==='ar'?' ar rtl':'') + (state.safe?' showsafe':'');
+               + (state.style==='refined'?' refined':'') + (lang==='ar'?' ar rtl':'') + (state.safe?' showsafe':'')
+               + ' goal-' + ((GOALS[slide.goal]||GOALS.education).style);
   el.style.width = f.w+'px'; el.style.height = f.h+'px';
   el.style.setProperty('--u', u);
   el.style.setProperty('--fit', 1);
@@ -750,8 +816,8 @@ function paint(el, slide, f, lang){
       ${disc}
       <div class="action">
         <div class="cta">
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1z"/></svg></span>
           <span class="txt">${esc(c.cta)}</span>
+          <span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span>
         </div>
       </div>
       <div class="footer">
@@ -929,7 +995,7 @@ function panel(){
   document.getElementById('waWrap').style.display = s.waOn ? '' : 'none';
   document.getElementById('slDate').value = s.meta.date;
   document.getElementById('slStatus').value = s.meta.status;
-  drawRed(); safety(); gate();
+  drawRed(); safety(); gate(); ctaGen();
 }
 document.getElementById('fields').addEventListener('input', e => {
   const k = e.target.dataset.k; if(!k) return;
@@ -960,6 +1026,26 @@ document.getElementById('source').addEventListener('input', e => { S().meta.sour
 document.getElementById('discOn').addEventListener('change', e => { S().disclaimer = e.target.checked; render(); });
 document.getElementById('waOn').addEventListener('change', e => { S().waOn = e.target.checked; document.getElementById('waWrap').style.display = e.target.checked ? '' : 'none'; render(); });
 document.getElementById('waNum').addEventListener('input', e => { S().waNum = e.target.value; render(); });
+/* ---- Smart CTA generator ---- */
+function ctaGen(){
+  const goalEl = document.getElementById('goal'); if(!goalEl) return;
+  const s = S(), goal = s.goal || 'education', g = GOALS[goal] || GOALS.education;
+  goalEl.value = goal;
+  const sug = ctaSuggest(goal, state.lang);
+  const stars = '★'.repeat(sug.stars) + '☆'.repeat(5 - sug.stars);
+  document.getElementById('ctaSuggest').innerHTML =
+    `<div class="stars">${stars}</div><div class="sug-cta">${esc(sug.cta)}</div><div class="sug-reason">${esc(sug.reason)}</div><button class="btn ghost" id="ctaApply">Use this CTA</button>`;
+  const list = g.ctas[state.lang] || g.ctas.en;
+  document.getElementById('ctaChips').innerHTML = list.map(x => `<button data-cta="${esc(x).replace(/"/g,'&quot;')}">${esc(x)}</button>`).join('');
+}
+function setCta(text){
+  C().cta = text;
+  const f = document.querySelector('#fields [data-k="cta"]'); if(f) f.value = text;
+  render();
+}
+document.getElementById('goal').addEventListener('change', e => { S().goal = e.target.value; ctaGen(); render(); });
+document.getElementById('ctaSuggest').addEventListener('click', e => { if(e.target.closest('#ctaApply')) setCta(ctaSuggest(S().goal||'education', state.lang).cta); });
+document.getElementById('ctaChips').addEventListener('click', e => { const b = e.target.closest('button'); if(b && b.dataset.cta != null) setCta(b.dataset.cta); });
 document.getElementById('slDate').addEventListener('change', e => { S().meta.date = e.target.value; });
 document.getElementById('slStatus').addEventListener('change', e => { S().meta.status = e.target.value; });
 document.getElementById('scaleBar').addEventListener('change', e => { S().scaleBar = e.target.checked; render(); });
