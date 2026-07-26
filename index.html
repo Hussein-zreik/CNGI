@@ -525,10 +525,10 @@ function textureSvg(w,h,navy,u){
   const o = (state.texAlpha||0)/100;
   if(!o || state.texture === 'none') return '';
   if(state.texture === 'plus')
-    return `<rect x="${716*u}" y="${-30*u}" width="${420*u}" height="${400*u}" fill="url(#pl)" opacity="${o/0.05}"/>`;
+    return `<rect x="${716*u}" y="${-30*u}" width="${420*u}" height="${400*u}" fill="url(#pl)" opacity="${o/0.05}" mask="url(#texfade)"/>`;
   if(state.texture === 'corner')
-    return `<image x="${w-300*u}" y="${-150*u}" width="${560*u}" height="${560*u}" opacity="${o}" href="${navy?MARK_WHITE:MARK_NAVY}"/>`;
-  return `<rect x="${700*u}" y="${-40*u}" width="${440*u}" height="${430*u}" fill="url(#mk)" opacity="${o}"/>`;
+    return `<image x="${w-300*u}" y="${-150*u}" width="${560*u}" height="${560*u}" opacity="${o}" href="${navy?MARK_WHITE:MARK_NAVY}" mask="url(#texfade)"/>`;
+  return `<rect x="${700*u}" y="${-40*u}" width="${440*u}" height="${430*u}" fill="url(#mk)" opacity="${o}" mask="url(#texfade)"/>`;
 }
 function bgSvg(w,h,navy,cs,comp,sw){
   const u = w/1080;
@@ -541,7 +541,12 @@ function bgSvg(w,h,navy,cs,comp,sw){
      <pattern id="pl" width="${122*u}" height="${122*u}" patternUnits="userSpaceOnUse">
        <path transform="scale(${u})" d="M53 30h16v15h15v16H69v15H53V61H38V45h15z" fill="${navy?'#FFFFFF':'#183C64'}" opacity="0.05"/></pattern>
      <pattern id="mk" width="${146*u}" height="${146*u}" patternUnits="userSpaceOnUse">
-       <image x="${10*u}" y="${10*u}" width="${126*u}" height="${126*u}" href="${navy?MARK_WHITE:MARK_NAVY}"/></pattern>`;
+       <image x="${10*u}" y="${10*u}" width="${126*u}" height="${126*u}" href="${navy?MARK_WHITE:MARK_NAVY}"/></pattern>
+     <radialGradient id="texgrad" gradientUnits="userSpaceOnUse" cx="${w}" cy="${20*u}" r="${360*u}">
+       <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+       <stop offset="0.45" stop-color="#fff" stop-opacity="0.75"/>
+       <stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+     <mask id="texfade" maskUnits="userSpaceOnUse" x="0" y="0" width="${w}" height="${h}"><rect width="${w}" height="${h}" fill="url(#texgrad)"/></mask>`;
 
   if(comp === 'watermark'){
     return `<svg class="bg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
