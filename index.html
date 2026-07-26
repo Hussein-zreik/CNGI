@@ -272,6 +272,19 @@ body.gridview .stage{display:none}
     </div>
 
     <div class="sec">
+      <h3>Content library</h3>
+      <div class="fld" style="margin-bottom:8px">
+        <label for="libPick">Ready-made clinical posts</label>
+        <select id="libPick"></select>
+      </div>
+      <div class="two">
+        <button class="btn ghost" id="libUse">Use in this slide</button>
+        <button class="btn ghost" id="libAdd">Add as new slide</button>
+      </div>
+      <p class="note">Pre-written, bilingual starting points that need no AI. Review every clinical claim, and add your own consent/source, before publishing.</p>
+    </div>
+
+    <div class="sec">
       <h3>Layout</h3>
       <div class="two">
         <div class="fld"><label for="module">Module</label><select id="module">
@@ -973,9 +986,123 @@ async function callClaude(prompt){
   try { return JSON.parse(text.replace(/```json|```/g,'').trim()); }
   catch(_){ throw new Error('unexpected response format'); }
 }
-/* Offline draft — works with no key or network. English is topic-derived;
-   Arabic is a clinical scaffold to refine or mirror. */
+/* ---- Offline content library: pre-written, bilingual clinical posts ----
+   Starting points only — every claim still needs the clinician's review,
+   and photo/quote posts need real consent before publishing. */
+const LIB_TAGS = ['#WoundCare','#DiabeticFoot','#Beirut','#HomeCare','#NurseLed','#رعاية_الجروح','#القدم_السكري','#بيروت'];
+const LIBRARY = [
+  { label:'Signs a wound may be infected', module:'standard',
+    tags:['infect','infection','pus','redness','red','odor','smell','sign'],
+    en:{eyebrow:'Wound Care Tip', title:'Three Signs A Wound May Be *Infected*',
+        body:'Spreading redness, warmth, swelling, new pain, or a bad odour all deserve a professional look. When in doubt, ask.',
+        cta:'Message us on WhatsApp',
+        caption:'Three signs a wound may be infected.\n\nSpreading redness, warmth, swelling, new pain or odour — don’t wait it out.\n\nQuestions? Message our home-care nurses.'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'ثلاث علامات قد تدل على *التهاب* الجرح',
+        body:'احمرار ينتشر، أو سخونة، أو تورّم، أو ألم جديد، أو رائحة كريهة — كلها تستحق تقييماً مختصاً. عند الشك، اسأل.',
+        cta:'راسلنا عبر واتساب',
+        caption:'ثلاث علامات قد تدل على التهاب الجرح.\n\nاحمرار ينتشر أو سخونة أو تورّم أو ألم أو رائحة — لا تنتظر.\n\nلأي سؤال، راسل ممرّضي الرعاية المنزلية.'} },
+  { label:'Check your feet every day', module:'steps',
+    tags:['check','daily','inspect','examine','foot check','look'],
+    en:{eyebrow:'How To', title:'Check Your Feet *Every Day*',
+        body:'A two-minute daily check catches small problems early.',
+        items:['Wash daily and dry well, including between the toes','Use a mirror to see the soles','Look for cuts, blisters, redness or swelling','Report anything new to your nurse or doctor'],
+        cta:'Save this post',
+        caption:'A two-minute daily foot check catches small problems early.\n\nWash, dry, inspect, and report anything new.\n\nHome visits across Beirut — message us.'},
+    ar:{eyebrow:'خطوة بخطوة', title:'افحص قدميك *كل يوم*',
+        body:'فحص يومي من دقيقتين يكشف المشاكل الصغيرة مبكراً.',
+        items:['اغسل قدميك يومياً وجفّفهما جيداً، وبين الأصابع','استعن بمرآة لرؤية باطن القدم','ابحث عن جروح أو بثور أو احمرار أو تورّم','أبلغ ممرّضك أو طبيبك عن أي جديد'],
+        cta:'احفظ المنشور',
+        caption:'فحص يومي من دقيقتين يكشف المشاكل الصغيرة مبكراً.\n\nاغسل، جفّف، افحص، وأبلغ عن أي جديد.\n\nزيارات منزلية في بيروت — راسلنا.'} },
+  { label:'Safer footwear with diabetes', module:'checklist',
+    tags:['shoe','shoes','footwear','sock','socks','sandal','barefoot'],
+    en:{eyebrow:'Checklist', title:'Safer *Footwear* With Diabetes',
+        items:['Shoes with a wide, deep toe box','No bare feet, even indoors','Check inside shoes for stones or rough seams','Break in new shoes slowly','Seamless, moisture-wicking socks'],
+        cta:'Message us on WhatsApp',
+        caption:'Small footwear habits protect diabetic feet.\n\nRoomy shoes, no bare feet, and a quick check inside before wearing.\n\nQuestions? Message our nurses.'},
+    ar:{eyebrow:'قائمة تحقّق', title:'أحذية *أكثر أماناً* مع السكري',
+        items:['حذاء بمقدمة واسعة وعميقة','لا تمشِ حافي القدمين، حتى في المنزل','افحص داخل الحذاء بحثاً عن حصى أو خياطة خشنة','عوّد قدميك على الحذاء الجديد تدريجياً','جوارب بلا خياطة تمتصّ الرطوبة'],
+        cta:'راسلنا عبر واتساب',
+        caption:'عادات بسيطة في اختيار الحذاء تحمي القدم السكرية.\n\nحذاء واسع، لا مشي حافياً، وفحص سريع للحذاء قبل ارتدائه.\n\nلأي سؤال، راسل ممرّضينا.'} },
+  { label:'Myth: a small wound heals on its own', module:'myth',
+    tags:['myth','heal on its own','small wound','own','ignore'],
+    en:{eyebrow:'Myth vs Fact', title:'Will A Small Foot Wound *Heal On Its Own*?',
+        myth:'It’s tiny, so it will close by itself.',
+        fact:'With diabetes, small foot wounds can worsen quickly and need prompt, professional care.',
+        cta:'Message us on WhatsApp',
+        caption:'Myth vs fact: small foot wounds and diabetes.\n\nEven a tiny wound deserves prompt attention.\n\nUnsure? Message our home-care nurses.'},
+    ar:{eyebrow:'خرافة وحقيقة', title:'هل يُشفى جرح القدم الصغير *من تلقاء نفسه*؟',
+        myth:'إنه صغير، لذا سيلتئم وحده.',
+        fact:'مع السكري، قد تتفاقم جروح القدم الصغيرة بسرعة وتحتاج إلى رعاية مختصة عاجلة.',
+        cta:'راسلنا عبر واتساب',
+        caption:'خرافة وحقيقة: جروح القدم الصغيرة والسكري.\n\nحتى الجرح الصغير يستحق اهتماماً سريعاً.\n\nلست متأكداً؟ راسل ممرّضي الرعاية المنزلية.'} },
+  { label:'Never self-trim calluses', module:'standard',
+    tags:['callus','calluses','corn','trim','file','shave','blade'],
+    en:{eyebrow:'Wound Care Tip', title:'Never *Self-Trim* Calluses With Diabetes',
+        body:'Home blades and corn removers can cause hidden wounds. Let a professional manage calluses safely.',
+        cta:'Message us on WhatsApp',
+        caption:'Please don’t self-trim calluses if you have diabetes.\n\nHome blades can cause hidden wounds.\n\nOur nurses manage calluses safely — message us.'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'لا *تقصّ* مسامير القدم بنفسك مع السكري',
+        body:'الشفرات المنزلية ومزيلات المسامير قد تسبّب جروحاً خفية. دع المختص يعالج القدم بأمان.',
+        cta:'راسلنا عبر واتساب',
+        caption:'رجاءً لا تقصّ مسامير القدم بنفسك إن كنت مصاباً بالسكري.\n\nالشفرات المنزلية قد تسبّب جروحاً خفية.\n\nممرّضونا يعالجون القدم بأمان — راسلنا.'} },
+  { label:'Keep the dressing clean and dry', module:'standard',
+    tags:['dressing','bandage','dry','clean','keep','change'],
+    en:{eyebrow:'Wound Care Tip', title:'Keep The Dressing *Clean And Dry*',
+        body:'Between visits, keep the dressing dry and intact. If it slips, soaks through, or smells, contact your nurse.',
+        cta:'Message us on WhatsApp',
+        caption:'Between visits: keep the dressing clean and dry.\n\nIf it slips, soaks through, or smells — tell your nurse.\n\nHome visits in Beirut — message us.'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'حافظ على الضمادة *نظيفة وجافة*',
+        body:'بين الزيارات، أبقِ الضمادة جافة وسليمة. إن انزلقت أو تبلّلت أو ظهرت رائحة، اتصل بممرّضك.',
+        cta:'راسلنا عبر واتساب',
+        caption:'بين الزيارات: أبقِ الضمادة نظيفة وجافة.\n\nإن انزلقت أو تبلّلت أو ظهرت رائحة — أخبر ممرّضك.\n\nزيارات منزلية في بيروت — راسلنا.'} },
+  { label:'When to seek help urgently', module:'checklist',
+    tags:['urgent','emergency','fever','seek help','when to','danger'],
+    en:{eyebrow:'Checklist', title:'When To Seek Help *Urgently*',
+        items:['Fever or chills with a wound','Spreading redness or darkening skin','Foul odour or pus','A sudden increase in pain','New numbness around a sore'],
+        cta:'Call your care team',
+        caption:'Know the red flags that need urgent care.\n\nFever, spreading redness, odour, sudden pain, or new numbness.\n\nWhen in doubt, call your care team.'},
+    ar:{eyebrow:'قائمة تحقّق', title:'متى تطلب المساعدة *فوراً*',
+        items:['حمّى أو قشعريرة مع وجود جرح','احمرار ينتشر أو لون جلد يزداد دُكنة','رائحة كريهة أو قيح','ازدياد مفاجئ في الألم','تنميل جديد حول القرحة'],
+        cta:'اتصل بفريق الرعاية',
+        caption:'اعرف العلامات التي تستدعي رعاية عاجلة.\n\nحمّى، احمرار ينتشر، رائحة، ألم مفاجئ، أو تنميل جديد.\n\nعند الشك، اتصل بفريق الرعاية.'} },
+  { label:'Healing progress (before / after)', module:'beforeafter',
+    tags:['before','after','progress','healing','weeks','improve'],
+    en:{eyebrow:'Progress', beforeLbl:'Week 0', afterLbl:'Week 6',
+        body:'Consistent, professional wound care supports healing over time. Shared with written patient consent.',
+        cta:'Message us on WhatsApp',
+        caption:'Progress with consistent, professional wound care.\n\nShared with written patient consent.\n\nAsk us about home wound care in Beirut.'},
+    ar:{eyebrow:'التقدّم', beforeLbl:'الأسبوع ٠', afterLbl:'الأسبوع ٦',
+        body:'الرعاية المنتظمة والمختصة للجروح تدعم الالتئام مع الوقت. تُنشر بموافقة خطية من المريض.',
+        cta:'راسلنا عبر واتساب',
+        caption:'تقدّم مع رعاية منتظمة ومختصة للجروح.\n\nتُنشر بموافقة خطية من المريض.\n\nاسألنا عن العناية المنزلية بالجروح في بيروت.'} },
+  { label:'Patient testimonial (placeholder)', module:'quote',
+    tags:['testimonial','quote','review','story','patient voice'],
+    en:{eyebrow:'Patient Voice', title:'Replace with a real, *consented* patient quote.',
+        attrib:'— Patient, Beirut', cta:'Message us on WhatsApp',
+        caption:'A word from someone we cared for.\n\n(Replace with a real quote you have written consent to share.)\n\nHome wound care in Beirut — message us.'},
+    ar:{eyebrow:'صوت المريض', title:'استبدل هذا باقتباس حقيقي *بموافقة* المريض.',
+        attrib:'— مريض، بيروت', cta:'راسلنا عبر واتساب',
+        caption:'كلمة من أحد من اعتنينا بهم.\n\n(استبدلها باقتباس حقيقي لديك موافقة خطية على نشره.)\n\nعناية منزلية بالجروح في بيروت — راسلنا.'} }
+];
+LIBRARY.forEach(e => { e.en.hashtags = LIB_TAGS; e.ar.hashtags = LIB_TAGS; });
+function findLibrary(topic, mod, sameModuleOnly){
+  const t = (topic||'').toLowerCase();
+  let best = null, bestScore = 0;
+  LIBRARY.forEach(e => {
+    if(sameModuleOnly && mod && e.module !== mod) return;
+    let score = e.tags.reduce((n,kw) => n + (t.includes(kw) ? 1 : 0), 0);
+    if(mod && e.module === mod && score > 0) score += 0.5;
+    if(score > bestScore){ bestScore = score; best = e; }
+  });
+  return bestScore >= 1 ? best : null;
+}
+
+/* Offline draft — works with no key or network. Reuses a matching library
+   entry when the topic clearly maps to one; otherwise builds a topic-derived
+   English draft with an Arabic clinical scaffold to refine or mirror. */
 function templateCopy(topic, mod){
+  const hit = findLibrary(topic, mod, true);
+  if(hit) return {en:hit.en, ar:hit.ar};
   const t = (topic||'').trim();
   const tc = t.replace(/\s+/g,' ').replace(/\b\w/g, c => c.toUpperCase());
   const low = t.toLowerCase();
@@ -1113,6 +1240,24 @@ function aiStatus(){
   k.addEventListener('input', () => { try { localStorage.setItem(AIKEY_KEY, k.value.trim()); } catch(_){} aiStatus(); });
   m.addEventListener('input', () => { try { localStorage.setItem(AIMODEL_KEY, m.value.trim()); } catch(_){} aiStatus(); });
   aiStatus();
+})();
+/* Content library picker */
+function loadLibrary(i, asNew){
+  const e = LIBRARY[i]; if(!e) return;
+  let slide;
+  if(asNew){ slide = blankSlide(); slide.theme = S().theme; slide.comp = S().comp;
+             state.slides.push(slide); state.active = state.slides.length-1; }
+  else slide = S();
+  slide.module = e.module;
+  applyCopy(slide, {en:e.en, ar:e.ar});
+  toolbars(); panel(); render();
+  note('Loaded “' + e.label + '”. Review the clinical content and add consent/source before exporting.');
+}
+(function initLibrary(){
+  const sel = document.getElementById('libPick');
+  sel.innerHTML = LIBRARY.map((e,i) => `<option value="${i}">${esc(e.label)} · ${esc(e.module)}</option>`).join('');
+  document.getElementById('libUse').onclick = () => loadLibrary(+sel.value, false);
+  document.getElementById('libAdd').onclick = () => loadLibrary(+sel.value, true);
 })();
 
 /* ================= export ================= */
