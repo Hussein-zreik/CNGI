@@ -223,6 +223,12 @@ body.gridview .stage{display:none}
 .aikey summary{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#7A8B9C;cursor:pointer;list-style:none}
 .aikey summary::-webkit-details-marker{display:none}
 .aikey[open] summary{margin-bottom:8px}
+.tglabel{display:block;font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#7A8B9C;margin:14px 0 6px}
+.tagchips{display:flex;flex-wrap:wrap;gap:6px}
+.tagchips button{font:inherit;font-size:11.5px;font-weight:600;padding:5px 9px;border-radius:100px;border:1px solid #D6DEE7;background:#fff;color:var(--ink);cursor:pointer;direction:ltr}
+.tagchips button.on{background:rgba(16,147,142,.12);border-color:var(--teal);color:var(--teal)}
+.tagchips button.add:hover{border-color:var(--teal);color:var(--teal)}
+.tagchips .empty{font-size:11px;color:#8496A6}
 .gen{background:#F4FAFA;border:1px solid #D6ECEB;border-radius:10px;padding:14px;margin-bottom:6px}
 .cap{white-space:pre-wrap;font-size:12px;line-height:1.55;color:var(--navy);background:#FAFCFE;border:1px solid #DCE4EC;border-radius:8px;padding:10px;max-height:190px;overflow:auto}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;margin-bottom:7px}
@@ -394,6 +400,15 @@ body.gridview .stage{display:none}
       <h3>Caption &amp; hashtags</h3>
       <div class="cap" id="capOut">Generate copy to fill this.</div>
       <button class="btn ghost" id="copyCap" style="margin-top:8px">Copy caption</button>
+
+      <label class="tglabel">Hashtags — first comment</label>
+      <div class="tagchips" id="tagSel"></div>
+      <div class="cap" id="fcOut" style="margin-top:8px">—</div>
+      <button class="btn ghost" id="copyFC" style="margin-top:8px">Copy first comment</button>
+
+      <label class="tglabel">Suggested — tap to add</label>
+      <div class="tagchips" id="tagSug"></div>
+      <p class="note">Instagram ranks captions and first comments the same — keeping hashtags in the first comment leaves the caption clean.</p>
     </div>
 
     <div class="sec">
@@ -444,13 +459,13 @@ const blankSlide = () => ({
       cta:'Save this post', items:['First step','Second step','Third step'],
       myth:'What people believe.', fact:'What the evidence says.',
       stat:'85%', statLabel:'Label for the figure', attrib:'— Patient, Beirut',
-      beforeLbl:'Week 0', afterLbl:'Week 6', caption:''},
+      beforeLbl:'Week 0', afterLbl:'Week 6', caption:'', tags:[]},
   ar:{eyebrow:'نصيحة للعناية بالجروح', title:'ضع عنوانك *هنا*',
       body:'يوضع النص هنا — جملة أو جملتان تحملان الفكرة الأساسية.',
       cta:'احفظ المنشور', items:['الخطوة الأولى','الخطوة الثانية','الخطوة الثالثة'],
       myth:'ما يعتقده الناس.', fact:'ما يقوله الدليل العلمي.',
       stat:'٨٥٪', statLabel:'وصف الرقم', attrib:'— مريض، بيروت',
-      beforeLbl:'الأسبوع ٠', afterLbl:'الأسبوع ٦', caption:''}
+      beforeLbl:'الأسبوع ٠', afterLbl:'الأسبوع ٦', caption:'', tags:[]}
 });
 const DISCLAIMER = {en:'Educational content — not a substitute for clinical assessment.',
                     ar:'محتوى تثقيفي ولا يغني عن التقييم السريري.'};
@@ -768,6 +783,7 @@ function panel(){
   });
   document.getElementById('capOut').textContent = C().caption || 'Generate copy to fill this.';
   document.getElementById('capOut').style.direction = ar ? 'rtl' : 'ltr';
+  renderTags();
   document.getElementById('photoSec').style.display = isPhoto(s.module) ? '' : 'none';
   document.getElementById('pickB').style.display = s.module==='beforeafter' ? '' : 'none';
   const p = s.photos[state.redIdx] || s.photos[0];
@@ -825,6 +841,20 @@ document.getElementById('scaleBar').addEventListener('change', e => { S().scaleB
 }));
 document.getElementById('copyCap').onclick = () => navigator.clipboard.writeText(C().caption||'').then(()=>{
   const b = document.getElementById('copyCap'); b.textContent='Copied'; setTimeout(()=>b.textContent='Copy caption',1400);
+});
+document.getElementById('copyFC').onclick = () => navigator.clipboard.writeText((C().tags||[]).join(' ')).then(()=>{
+  const b = document.getElementById('copyFC'); b.textContent='Copied'; setTimeout(()=>b.textContent='Copy first comment',1400);
+});
+document.getElementById('tagSel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  C().tags = (C().tags||[]).filter(x => x !== b.dataset.rm);
+  renderTags(); persist();
+});
+document.getElementById('tagSug').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const arr = C().tags || (C().tags = []);
+  if(!arr.includes(b.dataset.add)) arr.push(b.dataset.add);
+  renderTags(); persist();
 });
 
 /* ================= photo import + redaction ================= */
@@ -1192,11 +1222,43 @@ function applyCopy(slide, json){
     const src = json[L]||{}, dst = slide[L];
     ['eyebrow','title','body','cta','myth','fact','stat','statLabel','attrib','beforeLbl','afterLbl'].forEach(k => { if(src[k]) dst[k] = src[k]; });
     if(Array.isArray(src.items) && src.items.length) dst.items = src.items;
-    if(src.caption){
-      const tags = src.hashtags ? (Array.isArray(src.hashtags)?src.hashtags.join(' '):src.hashtags) : '';
-      dst.caption = src.caption + (tags ? '\n\n' + tags : '');
+    if(src.caption) dst.caption = src.caption;                 // caption stays clean
+    if(src.hashtags){                                          // hashtags go to the first comment
+      const tags = Array.isArray(src.hashtags) ? src.hashtags : String(src.hashtags).split(/\s+/);
+      dst.tags = tags.map(x => x.trim()).filter(Boolean);
     }
   });
+}
+/* ---- hashtag suggestions + first comment ---- */
+const TAG_BASE = ['#WoundCare','#DiabeticFoot','#FootCare','#HomeHealthcare','#NurseLed','#Beirut','#Lebanon'];
+const TAG_BASE_AR = ['#رعاية_الجروح','#القدم_السكري','#العناية_بالقدم','#تمريض_منزلي','#بيروت','#لبنان'];
+const TAG_MOD = {standard:['#HealthTips','#WoundHealing'], steps:['#HowTo','#SelfCare'], checklist:['#Checklist','#StaySafe'],
+  myth:['#MythVsFact','#HealthMyths'], stat:['#HealthFacts','#KnowTheNumbers'], quote:['#PatientStory'],
+  photofull:['#CaseStudy'], photosplit:['#CaseStudy'], beforeafter:['#BeforeAndAfter','#HealingJourney']};
+const TAG_TOPIC = [[/callus|corn/,'#FootCare'],[/infect/,'#WoundInfection'],[/shoe|footwear|sandal|sock/,'#Footwear'],
+  [/diabet/,'#DiabetesCare'],[/ulcer/,'#DiabeticUlcer'],[/dress|bandage/,'#WoundDressing'],
+  [/sugar|glucose|nutrition|diet/,'#DiabetesManagement'],[/heal/,'#WoundHealing']];
+function suggestTags(slide, lang){
+  const hay = (((document.getElementById('topic')||{}).value||'') + ' ' + (slide.en.title||'')).toLowerCase();
+  const out = [], push = t => { if(t && !out.includes(t)) out.push(t); };
+  (TAG_MOD[slide.module]||[]).forEach(push);
+  TAG_TOPIC.forEach(([re,t]) => { if(re.test(hay)) push(t); });
+  TAG_BASE.forEach(push);
+  TAG_BASE_AR.forEach(push);
+  return out.slice(0, 16);
+}
+function renderTags(){
+  const sel = C().tags || [];
+  const selEl = document.getElementById('tagSel'), sugEl = document.getElementById('tagSug'), fcEl = document.getElementById('fcOut');
+  if(!selEl) return;
+  selEl.innerHTML = sel.length
+    ? sel.map(t => `<button data-rm="${esc(t)}" class="on">${esc(t)} ✕</button>`).join('')
+    : '<span class="empty">No hashtags yet — tap suggestions below to add.</span>';
+  const sug = suggestTags(S(), state.lang).filter(t => !sel.includes(t));
+  sugEl.innerHTML = sug.length
+    ? sug.map(t => `<button data-add="${esc(t)}" class="add">${esc(t)}</button>`).join('')
+    : '<span class="empty">All suggestions added.</span>';
+  fcEl.textContent = sel.join(' ') || '—';
 }
 const note = m => document.getElementById('genNote').textContent = m;
 /* Draft one slide: AI when a key is set, otherwise offline templates; on an
