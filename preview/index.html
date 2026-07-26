@@ -71,7 +71,7 @@ body.gridview .stage{display:none}
 .eyebrow{align-self:flex-start;border:calc(1.6px*var(--u)) solid var(--teal);color:var(--teal);border-radius:100px;
   padding:calc(10px*var(--u)) calc(24px*var(--u));font-size:calc(18px*var(--fit)*var(--u));font-weight:600;letter-spacing:.18em;
   text-transform:uppercase;margin-bottom:calc(24px*var(--u));white-space:nowrap}
-.title{font-family:var(--serif);font-weight:600;font-size:calc(58px*var(--fit)*var(--u));line-height:1.16;color:var(--navy);letter-spacing:-.4px;margin:0}
+.title{font-family:var(--serif);font-weight:600;font-size:calc(58px*var(--hfit,1)*var(--u));line-height:1.16;color:var(--navy);letter-spacing:-.4px;margin:0}
 .title em{font-style:normal;color:var(--teal)}
 .rule{width:calc(92px*var(--u));height:calc(5px*var(--u));background:var(--teal);border-radius:4px;margin:calc(24px*var(--u)) 0 calc(20px*var(--u))}
 .body{font-size:calc(32px*var(--fit)*var(--u));line-height:1.5;color:var(--ink);margin:0}
@@ -147,7 +147,7 @@ body.gridview .stage{display:none}
 .post.refined .frame{border:0;padding:0}
 .post.refined .bracket{display:none}
 .post.refined .rule{display:block;width:calc(64px*var(--u));margin:calc(18px*var(--u)) 0 calc(18px*var(--u))}
-.post.refined .title{font-size:calc(82px*var(--fit)*var(--u));line-height:1.10;margin-bottom:calc(28px*var(--u))}
+.post.refined .title{font-size:calc(82px*var(--hfit,1)*var(--u));line-height:1.10;margin-bottom:calc(28px*var(--u))}
 .post.refined .body{font-size:calc(32px*var(--fit)*var(--u));max-width:calc(760px*var(--u))}
 .post.refined .eyebrow{border:0;background:none;padding:0;color:var(--teal);margin-bottom:calc(22px*var(--u));font-size:calc(24px*var(--fit)*var(--u))}
 .post.refined.navy .eyebrow{color:var(--teal-lt)}
@@ -155,7 +155,7 @@ body.gridview .stage{display:none}
 .post.refined .attrib{margin-top:calc(24px*var(--u))}
 .post.refined .statlabel{margin-top:calc(18px*var(--u))}
 .post.refined .balabel{margin-bottom:calc(20px*var(--u))}
-.post.refined.ar .title{line-height:1.34;font-size:calc(74px*var(--fit)*var(--u))}
+.post.refined.ar .title{line-height:1.34;font-size:calc(74px*var(--hfit,1)*var(--u))}
 .post.refined .split{margin-top:calc(6px*var(--u))}
 
 .post.navy .logoslot{background:#fff;box-shadow:0 6px 22px rgba(0,0,0,.18)}
@@ -215,6 +215,15 @@ body.gridview .stage{display:none}
 .btn.dark{background:var(--navy)}
 .note{font-size:11px;line-height:1.55;color:#8496A6;margin-top:10px}
 .note b{color:var(--navy)}
+.caphead{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:#7A8B9C;margin:12px 0 6px}
+.capacity{display:flex;flex-direction:column;gap:7px}
+.caprow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3px 10px;font-size:11px;color:#7A8B9C}
+.caprow .caplab{font-weight:600}
+.caprow .capval{font-variant-numeric:tabular-nums}
+.caprow .capbar{grid-column:1 / 3;height:5px;border-radius:3px;background:#EDF1F5;overflow:hidden}
+.caprow .capbar i{display:block;height:100%;width:0;background:var(--teal);border-radius:3px;transition:width .15s}
+.caprow.near .capbar i{background:#D9902B}.caprow.near .capval{color:#B4632B}
+.caprow.over .capbar i{background:#C4453F}.caprow.over .capval{color:#C4453F;font-weight:700}
 .verlist{display:flex;flex-direction:column;gap:6px;margin:8px 0}
 .verrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border:1px solid #E4EAF0;border-radius:8px;background:#FAFCFE}
 .vermeta{display:flex;flex-direction:column;line-height:1.3;min-width:0}
@@ -362,6 +371,9 @@ body.gridview .stage{display:none}
         <option value="Book through WhatsApp"></option>
         <option value="Refer a patient"></option>
       </datalist>
+      <div class="caphead">Content capacity</div>
+      <div id="capacity" class="capacity"></div>
+      <p class="note">The headline auto-sizes within its brand range to fit two lines; other zones stay fixed. Bars turn amber near a limit and red over it.</p>
     </div>
 
     <div class="sec" id="photoSec" style="display:none">
@@ -714,15 +726,66 @@ function paint(el, slide, f, lang){
     </div>`;
   autofit(el);
 }
-/* Headlines/body are no longer auto-shrunk to fit — type stays at the fixed
-   hierarchy and over-long wording is flagged in the panel (see safety()). */
-function autofit(el){ el.style.setProperty('--fit', 1); }
+/* ===== Smart content capacity ===== */
+const ZONES = { headline:{lines:2, words:9, chars:55}, body:{words:35, bullets:5}, cta:{words:7} };
+const HEADLINE_MIN_PX = 66;   // brand floor — the headline never scales below this
+/* Bounded headline auto-fit: scale ONLY the headline, and only within its brand
+   range (down to 66px), to keep it to ~2 lines. Body/list/CTA stay fixed. Past
+   the floor the headline is left at min size and flagged over-capacity. */
+function autofit(el){
+  el.style.setProperty('--fit', 1);
+  el.style.setProperty('--hfit', 1);
+  const t = el.querySelector('.title'); if(!t) return;
+  const uu = parseFloat(el.style.getPropertyValue('--u')) || 1;
+  const basePx = parseFloat(getComputedStyle(t).fontSize);   // size at hfit = 1
+  if(!basePx) return;
+  const floor = Math.min(1, (HEADLINE_MIN_PX * uu) / basePx);
+  const lines = () => { const cs = getComputedStyle(t); const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize)*1.2; return Math.round(t.scrollHeight / lh); };
+  let k = 1;
+  while(lines() > ZONES.headline.lines && k > floor + 0.001){
+    k = Math.max(floor, k - 0.03);
+    el.style.setProperty('--hfit', k.toFixed(3));
+  }
+}
+function capLines(){
+  const t = post.querySelector('.title'); if(!t) return 0;
+  const cs = getComputedStyle(t); const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize)*1.2;
+  return Math.max(1, Math.round(t.scrollHeight / lh));
+}
+/* Live per-zone capacity meters (words / chars / lines / bullets vs the maximums). */
+function capacity(){
+  const el = document.getElementById('capacity'); if(!el) return;
+  const s = S(), c = s[state.lang];
+  const wc = v => String(v||'').trim().split(/\s+/).filter(Boolean).length;
+  const rows = [];
+  const bar = (label, val, max) => {
+    const pct = Math.min(100, Math.round(100*val/Math.max(1,max)));
+    const lv = val > max ? 'over' : val >= max*0.9 ? 'near' : 'ok';
+    rows.push(`<div class="caprow ${lv}"><span class="caplab">${label}</span><span class="capval">${val}/${max}</span><span class="capbar"><i style="width:${pct}%"></i></span></div>`);
+  };
+  const title = (c.title||'').replace(/\*/g,'');
+  if(s.module === 'quote'){
+    bar('Quote · words', wc(title), 24);
+  } else {
+    bar('Headline · words', wc(title), ZONES.headline.words);
+    bar('Headline · characters', title.length, ZONES.headline.chars);
+    bar('Headline · lines', capLines(), ZONES.headline.lines);
+  }
+  if(s.module === 'steps' || s.module === 'checklist'){
+    bar('List · items', (c.items||[]).filter(x=>String(x).trim()).length, ZONES.body.bullets);
+  } else if(['standard','photofull','photosplit','beforeafter','stat'].indexOf(s.module) >= 0){
+    bar('Body · words', wc(c.body), ZONES.body.words);
+  }
+  bar('CTA · words', wc(c.cta), ZONES.cta.words);
+  el.innerHTML = rows.join('');
+}
 function fit(){ const f = FORMATS[state.fmt]; post.style.transform = 'scale(' + (stage.clientWidth/f.w) + ')'; }
 function render(){
   const f = FORMATS[state.fmt];
   stageInner.style.paddingTop = (f.h/f.w*100)+'%';
   paint(post, S(), f, state.lang);
   fit();
+  capacity();
   if(state.view === 'grid') renderGrid();
   persist();
 }
@@ -1023,11 +1086,13 @@ function safety(){
     out.push({lv:'stop', msg:'Patient image without a recorded consent — export is blocked.'});
   const c = s[state.lang];
   const words = v => String(v||'').trim().split(/\s+/).filter(Boolean).length;
-  const hw = words((c.title||'').replace(/\*/g,''));
-  if(s.module !== 'quote' && hw > 9)
-    out.push({lv:'warn', msg:'Headline is ' + hw + ' words — shorten the wording (headlines are no longer shrunk to fit, so long text can clip).'});
-  if(['standard','photofull','photosplit','beforeafter','stat'].indexOf(s.module) >= 0 && words(c.body) > 35)
-    out.push({lv:'warn', msg:'Supporting text is ' + words(c.body) + ' words — trim to keep it readable at post size.'});
+  const ht = (c.title||'').replace(/\*/g,''), hw = words(ht);
+  if(s.module !== 'quote' && (hw > ZONES.headline.words || ht.length > ZONES.headline.chars))
+    out.push({lv:'warn', msg:'Headline is over capacity (' + hw + '/' + ZONES.headline.words + ' words, ' + ht.length + '/' + ZONES.headline.chars + ' chars) — shorten it; it is already at its smallest brand size.'});
+  if(['standard','photofull','photosplit','beforeafter','stat'].indexOf(s.module) >= 0 && words(c.body) > ZONES.body.words)
+    out.push({lv:'warn', msg:'Supporting text is ' + words(c.body) + '/' + ZONES.body.words + ' words — trim to keep it readable at post size.'});
+  if((s.module === 'steps' || s.module === 'checklist') && (c.items||[]).filter(x=>String(x).trim()).length > ZONES.body.bullets)
+    out.push({lv:'warn', msg:'List has more than ' + ZONES.body.bullets + ' items — trim it for a cleaner post.'});
   if(!out.length) out.push({lv:'ok', msg:'No flags. Clinical accuracy still needs your own review.'});
   document.getElementById('safety').innerHTML = out.map(o =>
     `<div class="chk ${o.lv}"><span class="dot"></span><span>${esc(o.msg)}</span></div>`).join('');
