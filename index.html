@@ -104,6 +104,16 @@ body.gridview .stage{display:none}
 .phbox .scalebar{position:absolute;right:calc(16px*var(--u));bottom:calc(16px*var(--u));display:flex;align-items:center;gap:calc(8px*var(--u))}
 .phbox .scalebar i{display:block;width:calc(90px*var(--u));height:calc(9px*var(--u));background:repeating-linear-gradient(90deg,#fff 0 calc(9px*var(--u)),#183C64 calc(9px*var(--u)) calc(18px*var(--u)));border:calc(1.5px*var(--u)) solid #fff;border-radius:2px}
 .phbox .scalebar span{color:#fff;font-size:calc(18px*var(--u));font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+/* photosplit: photo panel on the right, text column on the left */
+.sidephoto{display:flex;align-items:center;gap:calc(46px*var(--u));width:100%}
+.sidephoto .sp-text{flex:1 1 56%;min-width:0}
+.sidephoto .sp-media{flex:0 0 40%;display:flex;justify-content:center}
+.sp-frame{position:relative;width:100%;border-radius:calc(30px*var(--u));overflow:hidden;background:#DCE4EC;background-repeat:no-repeat;
+  box-shadow:0 0 0 calc(4px*var(--u)) #fff,0 0 0 calc(8px*var(--u)) var(--teal),0 calc(22px*var(--u)) calc(46px*var(--u)) rgba(15,42,72,.20)}
+.post.navy .sp-frame{box-shadow:0 0 0 calc(4px*var(--u)) rgba(255,255,255,.92),0 0 0 calc(8px*var(--u)) var(--teal-lt),0 calc(22px*var(--u)) calc(46px*var(--u)) rgba(0,0,0,.30)}
+.sp-frame .scalebar{position:absolute;right:calc(14px*var(--u));bottom:calc(14px*var(--u));display:flex;align-items:center;gap:calc(8px*var(--u))}
+.sp-frame .scalebar i{display:block;width:calc(80px*var(--u));height:calc(9px*var(--u));background:repeating-linear-gradient(90deg,#fff 0 calc(9px*var(--u)),#183C64 calc(9px*var(--u)) calc(18px*var(--u)));border:calc(1.5px*var(--u)) solid #fff;border-radius:2px}
+.sp-frame .scalebar span{color:#fff;font-size:calc(16px*var(--u));font-weight:700;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .ba{display:flex;gap:calc(22px*var(--u));width:100%}
 .ba .phbox{flex:1}
 .balabel{display:flex;gap:calc(22px*var(--u));margin-top:calc(16px*var(--u))}
@@ -635,10 +645,13 @@ function moduleHtml(slide, lang, f, u){
     return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
   }
   if(m === 'photosplit'){
-    const bh = Math.round(innerH * 0.46);
-    return `<div class="phbox" style="height:${bh}px;${phStyle(slide.photos[0], innerW, bh)}">${bar}</div>
-      <div style="height:${28*u}px"></div>` + eyebrow + `<h1 class="title">${H(c.title)}</h1>
-      <div class="rule"></div><p class="body">${H(c.body)}</p>`;
+    /* Photo on the right as a ringed panel; text column on the left. Sized/centred
+       to sit clear of the corner wedge and the bottom swoosh. */
+    const mw = Math.round(innerW * 0.40), mh = Math.round(mw * 1.16);
+    return `<div class="sidephoto">
+      <div class="sp-text">${eyebrow}<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p></div>
+      <div class="sp-media"><div class="sp-frame" style="height:${mh}px;${phStyle(slide.photos[0], mw, mh)}">${bar}</div></div>
+    </div>`;
   }
   if(m === 'beforeafter'){
     const bw = (innerW - 22*u)/2, bh = Math.round(innerH * 0.62);
