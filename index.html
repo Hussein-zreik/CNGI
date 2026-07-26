@@ -212,6 +212,13 @@ body.gridview .stage{display:none}
 .btn.dark{background:var(--navy)}
 .note{font-size:11px;line-height:1.55;color:#8496A6;margin-top:10px}
 .note b{color:var(--navy)}
+.verlist{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.verrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border:1px solid #E4EAF0;border-radius:8px;background:#FAFCFE}
+.vermeta{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.vermeta b{font-size:12px;color:var(--navy)}
+.vermeta span{font-size:10.5px;color:#8496A6}
+.veract{display:flex;gap:5px;flex:0 0 auto}
+.veract .chip{padding:5px 9px;font-size:11px}
 .gen{background:#F4FAFA;border:1px solid #D6ECEB;border-radius:10px;padding:14px;margin-bottom:6px}
 .cap{white-space:pre-wrap;font-size:12px;line-height:1.55;color:var(--navy);background:#FAFCFE;border:1px solid #DCE4EC;border-radius:8px;padding:10px;max-height:190px;overflow:auto}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:12px;line-height:1.5;margin-bottom:7px}
@@ -359,6 +366,15 @@ body.gridview .stage{display:none}
       <input type="file" id="file" accept="application/json" style="display:none">
       <p class="note" id="expNote"><b>Navy 183C64</b> · <b>Teal 10938E</b> · <b>Teal-light 18B7B0</b> · <b>Slate 4E6377</b><br>
       WebM plays on desktop and imports into CapCut desktop; convert to MP4 for the Instagram app.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Autosave &amp; history</h3>
+      <p class="note" id="autoStat" style="margin-top:0">Autosave on — your work stays in this browser.</p>
+      <button class="btn ghost" id="snapBtn">Save a version</button>
+      <div id="verList" class="verlist"></div>
+      <button class="btn ghost" id="freshBtn">Start fresh (clear saved)</button>
+      <p class="note">Versions and autosave live only in this browser on this device — they are not uploaded. Use <b>Save .json</b> for a permanent, portable backup.</p>
     </div>
   </aside>
 </div>
@@ -622,6 +638,7 @@ function render(){
   paint(post, S(), f, state.lang);
   fit();
   if(state.view === 'grid') renderGrid();
+  persist();
 }
 function renderGrid(){
   const g = document.getElementById('grid');
@@ -1115,7 +1132,134 @@ document.getElementById('csv').onclick = () => {
   saveAs(URL.createObjectURL(new Blob(['\ufeff'+csv], {type:'text/csv'})), 'curanova-schedule.csv');
 };
 
+/* ================= autosave & version history ================= */
+const AUTO_KEY = 'curanova.autosave.v1';
+const HIST_KEY = 'curanova.history.v1';
+const HIST_MAX = 12;
+const HAS_LS = (() => { try { localStorage.setItem('__cn_t','1'); localStorage.removeItem('__cn_t'); return true; } catch(_) { return false; } })();
+let saveTimer = null, lastSnap = Date.now();
+
+function packState(strip){
+  const slides = state.slides.map(s => {
+    const c = JSON.parse(JSON.stringify(s));
+    if(strip && c.photos) c.photos.forEach(p => { p.raw = ''; p.baked = ''; });
+    return c;
+  });
+  return {v:1, fmt:state.fmt, lang:state.lang, style:state.style, texture:state.texture,
+          texAlpha:state.texAlpha, view:state.view, active:state.active, brand:state.brand, slides};
+}
+function applyPack(d){
+  if(!d || !d.slides || !d.slides.length) return false;
+  state.slides = d.slides.map(s => {
+    const b = blankSlide();
+    const m = Object.assign({}, b, s);
+    m.en = Object.assign({}, b.en, s.en || {});
+    m.ar = Object.assign({}, b.ar, s.ar || {});
+    m.photos = (s.photos && s.photos.length ? s.photos : b.photos).map(p => Object.assign(newPhoto(), p));
+    m.consent = Object.assign({}, b.consent, s.consent || {});
+    m.meta = Object.assign({}, b.meta, s.meta || {});
+    return m;
+  });
+  if(d.brand) state.brand = d.brand;
+  if(d.fmt && FORMATS[d.fmt]) state.fmt = d.fmt;
+  if(d.lang) state.lang = d.lang;
+  if(d.style) state.style = d.style;
+  if(d.texture) state.texture = d.texture;
+  if(typeof d.texAlpha === 'number') state.texAlpha = d.texAlpha;
+  if(d.view) state.view = d.view;
+  state.active = Math.min(Math.max(0, d.active || 0), state.slides.length - 1);
+  return true;
+}
+function trySet(key, obj){ try { localStorage.setItem(key, JSON.stringify(obj)); return true; } catch(_) { return false; } }
+function autoStat(html){ const el = document.getElementById('autoStat'); if(el) el.innerHTML = html; }
+const hm = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+function writeAuto(){
+  if(!HAS_LS) return;
+  let ok = trySet(AUTO_KEY, packState(false)), stripped = false;
+  if(!ok){ ok = trySet(AUTO_KEY, packState(true)); stripped = true; }
+  if(ok) autoStat('Autosaved · ' + hm() + (stripped ? ' <b>(images too large to keep)</b>' : ''));
+  else autoStat('<b>Autosave failed</b> — browser storage is full.');
+}
+function persist(){
+  if(!HAS_LS) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    writeAuto();
+    if(Date.now() - lastSnap > 180000) takeSnapshot(true);
+  }, 500);
+}
+function loadHist(){ try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch(_) { return []; } }
+function commitHist(list){
+  while(list.length){ if(trySet(HIST_KEY, list)) return list; list.pop(); }
+  trySet(HIST_KEY, []); return [];
+}
+function takeSnapshot(auto){
+  if(!HAS_LS) return;
+  let list = loadHist();
+  const entry = {t:Date.now(), auto:!!auto, n:state.slides.length, data:packState(false)};
+  list.unshift(entry);
+  if(list.length > HIST_MAX) list = list.slice(0, HIST_MAX);
+  if(!trySet(HIST_KEY, list)){ entry.data = packState(true); entry.stripped = true; list = commitHist(list); }
+  lastSnap = Date.now();
+  renderVersions();
+}
+function relTime(t){
+  const s = Math.floor((Date.now() - t) / 1000);
+  if(s < 60) return 'just now';
+  if(s < 3600) return Math.floor(s/60) + ' min ago';
+  if(s < 86400) return Math.floor(s/3600) + ' h ago';
+  return Math.floor(s/86400) + ' d ago';
+}
+function renderVersions(){
+  const el = document.getElementById('verList'); if(!el) return;
+  if(!HAS_LS){ el.innerHTML = '<p class="note" style="margin:6px 0 0">Storage is unavailable in this browser, so autosave and history are off.</p>'; return; }
+  const list = loadHist();
+  if(!list.length){ el.innerHTML = '<p class="note" style="margin:6px 0 0">No saved versions yet.</p>'; return; }
+  el.innerHTML = list.map((v,i) => {
+    const stamp = new Date(v.t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    const tags = `${v.n} slide${v.n!==1?'s':''}${v.auto?' · auto':''}${v.stripped?' · no images':''}`;
+    return `<div class="verrow"><div class="vermeta"><b>${relTime(v.t)}</b><span>${stamp} · ${tags}</span></div>`
+      + `<div class="veract"><button class="chip" data-ver="${i}">Restore</button><button class="chip" data-verdel="${i}" title="Delete">✕</button></div></div>`;
+  }).join('');
+}
+function restoreAuto(){
+  if(!HAS_LS) return false;
+  let d; try { d = JSON.parse(localStorage.getItem(AUTO_KEY)); } catch(_) { return false; }
+  return applyPack(d);
+}
+document.addEventListener('input', persist);
+document.addEventListener('change', persist);
+document.getElementById('snapBtn').onclick = () => { takeSnapshot(false); note('Version saved to this browser.'); };
+document.getElementById('freshBtn').onclick = () => {
+  if(!confirm('Clear the autosaved session and start from a blank pack? Saved versions below are kept.')) return;
+  try { localStorage.removeItem(AUTO_KEY); } catch(_){}
+  location.reload();
+};
+document.getElementById('verList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  const list = loadHist();
+  if(b.dataset.ver !== undefined){
+    const v = list[+b.dataset.ver]; if(!v) return;
+    if(!confirm('Restore this version? Your current work is backed up as a new version first.')) return;
+    takeSnapshot(false);
+    applyPack(v.data);
+    document.body.classList.toggle('gridview', state.view === 'grid');
+    stage.classList.toggle('thumb', state.thumb);
+    toolbars(); panel(); render();
+    note('Restored the version from ' + new Date(v.t).toLocaleString() + '.');
+  } else if(b.dataset.verdel !== undefined){
+    list.splice(+b.dataset.verdel, 1); commitHist(list); renderVersions();
+  }
+});
+
 /* ================= boot ================= */
+const restored = restoreAuto();
+document.body.classList.toggle('gridview', state.view === 'grid');
+stage.classList.toggle('thumb', state.thumb);
 toolbars(); panel(); render();
+renderVersions();
+if(!HAS_LS) autoStat('Autosave is unavailable in this browser (private mode or storage blocked).');
+else if(restored) note('Restored your previous session. Use “Save a version” to bookmark checkpoints you can return to.');
 document.fonts && document.fonts.ready.then(() => render());
 </script>
