@@ -282,6 +282,12 @@ body.gridview .stage{display:none}
 .redcanvas{width:100%;border:1px solid #DCE4EC;border-radius:8px;cursor:crosshair;display:block;background:#F2F6F9}
 .tagrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
 .tagrow button{font:inherit;font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #E3C0BE;background:#FCF3F2;color:#9A3B36;cursor:pointer}
+.gallery{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+.gallery button{flex:1 1 calc(50% - 4px);text-align:left;font:inherit;font-size:11.5px;font-weight:700;padding:9px 10px;border-radius:9px;border:1px solid #D6DEE7;background:#fff;color:var(--navy);cursor:pointer;line-height:1.25}
+.gallery button:hover{border-color:var(--teal);color:var(--teal)}
+.gallery button small{display:block;font-weight:500;font-size:10px;color:#8496A6;margin-top:2px}
+.gallery button:hover small{color:var(--teal)}
+.gallery .empty{font-size:11px;color:#8496A6}
 </style>
 
 <div class="app">
@@ -348,6 +354,21 @@ body.gridview .stage{display:none}
         <button class="btn ghost" id="libAdd">Add as new slide</button>
       </div>
       <p class="note">Pre-written, bilingual starting points that need no AI. Review every clinical claim, and add your own consent/source, before publishing.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Templates by goal</h3>
+      <div class="fld"><label for="tplGoal">Goal</label><select id="tplGoal">
+        <option value="education">Education</option>
+        <option value="promotion">Promotion</option>
+        <option value="referral">Referral</option>
+        <option value="recruitment">Recruitment</option>
+        <option value="event">Event</option>
+        <option value="awareness">Awareness</option>
+      </select></div>
+      <label class="chk"><input type="checkbox" id="tplNew"> Open as a new slide</label>
+      <div id="tplGallery" class="gallery"></div>
+      <p class="note">Ready-made layouts with placeholder copy for each goal — the module, goal and CTA colour are set for you. Pick one, then fill in the details.</p>
     </div>
 
     <div class="sec">
@@ -481,9 +502,27 @@ body.gridview .stage{display:none}
     </div>
 
     <div class="sec">
+      <h3>Brand kit</h3>
+      <div class="fld"><label for="kitPick">Saved kits</label><select id="kitPick"></select></div>
+      <div class="two">
+        <button class="btn ghost" id="kitApply">Apply to this post</button>
+        <button class="btn ghost" id="kitApplyAll">Apply to all</button>
+      </div>
+      <div class="two">
+        <button class="btn ghost" id="kitSave">Save current as kit…</button>
+        <button class="btn ghost" id="kitDel">Delete</button>
+      </div>
+      <p class="note">A kit stores your footer lines, WhatsApp number, default theme, post goal and voice — save your look once, then apply it to keep every post on-brand. Kits live in this browser.</p>
+    </div>
+
+    <div class="sec">
       <h3>Caption &amp; hashtags</h3>
-      <div class="cap" id="capOut">Generate copy to fill this.</div>
-      <button class="btn ghost" id="copyCap" style="margin-top:8px">Copy caption</button>
+      <button class="btn" id="capBuild" style="margin-top:0">Build caption + hashtags from this post</button>
+      <div class="cap" id="capOut" style="margin-top:8px">Generate copy to fill this.</div>
+      <div class="two">
+        <button class="btn ghost" id="copyCap">Copy caption</button>
+        <button class="btn ghost" id="copyAll">Copy all</button>
+      </div>
 
       <label class="tglabel">Hashtags — first comment</label>
       <div class="tagchips" id="tagSel"></div>
@@ -1076,6 +1115,42 @@ document.getElementById('tagSug').addEventListener('click', e => {
   if(!arr.includes(b.dataset.add)) arr.push(b.dataset.add);
   renderTags(); persist();
 });
+/* ---- build a caption + hashtags straight from the post content ---- */
+function buildCaption(slide, lang){
+  const c = slide[lang], isAr = lang === 'ar', strip = s => (s || '').replace(/\*/g,'').trim();
+  const title = strip(c.title);
+  let detail = strip(c.body);
+  if((slide.module==='steps' || slide.module==='checklist') && (c.items||[]).filter(Boolean).length)
+    detail = c.items.filter(Boolean).map(strip).join(isAr ? '، ' : ' • ');
+  else if(slide.module==='myth') detail = strip(c.fact);
+  else if(slide.module==='quote') detail = strip(c.attrib);
+  else if(slide.module==='stat') detail = [strip(c.stat), strip(c.statLabel)].filter(Boolean).join(' — ');
+  const ctx = isAr ? 'محتوى تثقيفي من ممرّضي CuraNova للعناية بالجروح والقدم السكرية في المنزل ببيروت.'
+                   : "Educational content from CuraNova's home wound-care and diabetic-foot nurses in Beirut.";
+  const close = isAr ? 'لأي سؤال، راسلنا عبر واتساب.' : 'Questions? Message our home-care nurses on WhatsApp.';
+  const lines = [];
+  if(title) lines.push(/[.!?؟…]$/.test(title) ? title : title + '.');
+  if(state.capLen !== 'short' && detail) lines.push(detail);
+  if(state.capLen === 'long') lines.push(ctx);
+  lines.push(close);
+  return lines.join('\n\n');
+}
+function buildCaptionAndTags(){
+  const s = S();
+  C().caption = buildCaption(s, state.lang);
+  const want = {short:6, standard:8, long:10}[state.capLen] || 8;
+  const arr = C().tags || (C().tags = []);
+  suggestTags(s, state.lang).forEach(t => { if(arr.length < want && !arr.includes(t)) arr.push(t); });
+  panel(); render();
+  note('Built a caption and hashtags from this post — review before publishing.');
+}
+document.getElementById('capBuild').onclick = buildCaptionAndTags;
+document.getElementById('copyAll').onclick = () => {
+  const txt = ((C().caption || '') + '\n\n' + (C().tags || []).join(' ')).trim();
+  navigator.clipboard.writeText(txt).then(() => {
+    const b = document.getElementById('copyAll'); b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy all', 1400);
+  });
+};
 
 /* ================= photo import + redaction ================= */
 function pickFile(idx){
@@ -1594,6 +1669,167 @@ function loadLibrary(i, asNew){
   sel.innerHTML = LIBRARY.map((e,i) => `<option value="${i}">${esc(e.label)} · ${esc(e.module)}</option>`).join('');
   document.getElementById('libUse').onclick = () => loadLibrary(+sel.value, false);
   document.getElementById('libAdd').onclick = () => loadLibrary(+sel.value, true);
+})();
+
+/* ================= templates by goal ================= */
+/* Each template is a starting layout: it sets the module, post goal and CTA
+   colour, and drops in placeholder copy (EN + AR) to fill in. */
+const TEMPLATES = [
+  { label:'Warning signs', sub:'Standard · list the red flags', goal:'education', module:'standard',
+    en:{eyebrow:'Wound Care Education', title:'Signs A Wound Needs *Attention*',
+        body:'Spreading redness, new pain, swelling, warmth or a bad odour all deserve a professional look.', cta:'Know the warning signs.'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'علامات تستدعي *الانتباه* للجرح',
+        body:'احمرار ينتشر، أو ألم جديد، أو تورّم، أو سخونة، أو رائحة كريهة — كلها تستحق تقييماً مختصاً.', cta:'اعرف العلامات التحذيرية.'} },
+  { label:'How-to steps', sub:'Steps · a simple routine', goal:'education', module:'steps',
+    en:{eyebrow:'How To', title:'A Safer Daily *Routine*',
+        items:['First step goes here','Second step goes here','Third step goes here'], cta:'Save this guide.'},
+    ar:{eyebrow:'خطوة بخطوة', title:'روتين يومي *أكثر أماناً*',
+        items:['الخطوة الأولى هنا','الخطوة الثانية هنا','الخطوة الثالثة هنا'], cta:'احفظ هذا الدليل.'} },
+  { label:'Myth vs fact', sub:'Myth · correct a belief', goal:'education', module:'myth',
+    en:{eyebrow:'Myth vs Fact', title:'Is This *True*?', myth:'A common belief patients mention.',
+        fact:'What current evidence actually supports.', cta:'Learn more.'},
+    ar:{eyebrow:'خرافة وحقيقة', title:'هل هذا *صحيح*؟', myth:'اعتقاد شائع بين المرضى.',
+        fact:'ما يدعمه الدليل العلمي فعلاً.', cta:'اعرف المزيد.'} },
+  { label:'By the numbers', sub:'Stat · lead with a figure', goal:'education', module:'stat',
+    en:{eyebrow:'By The Numbers', stat:'85%', statLabel:'What the figure means',
+        body:'One short sentence explaining why this number matters.', cta:'Stay informed.'},
+    ar:{eyebrow:'بالأرقام', stat:'٨٥٪', statLabel:'ماذا يعني الرقم',
+        body:'جملة قصيرة تشرح لماذا يهمّ هذا الرقم.', cta:'ابقَ على اطلاع.'} },
+  { label:'Care at home', sub:'Standard · service spotlight', goal:'promotion', module:'standard',
+    en:{eyebrow:'CuraNova Services', title:'Specialist Wound Care, *At Home*',
+        body:'Nurse-led wound and diabetic-foot care in the comfort of your home, across Beirut.', cta:'Book a home assessment.'},
+    ar:{eyebrow:'خدمات CuraNova', title:'رعاية متخصصة للجروح *في المنزل*',
+        body:'رعاية للجروح والقدم السكرية بإشراف ممرّضين، في منزلك وفي جميع أنحاء بيروت.', cta:'احجز تقييماً منزلياً.'} },
+  { label:'Book via WhatsApp', sub:'Standard · drive a message', goal:'promotion', module:'standard',
+    en:{eyebrow:'CuraNova Services', title:'One Message Away From *Expert Care*',
+        body:'Tell us what you need and we will arrange a home visit that suits you.', cta:'Message us today.'},
+    ar:{eyebrow:'خدمات CuraNova', title:'رسالة واحدة تفصلك عن *رعاية متخصصة*',
+        body:'أخبرنا بما تحتاجه وسنرتّب زيارة منزلية تناسبك.', cta:'راسلنا اليوم.'} },
+  { label:'Refer a patient', sub:'Standard · for physicians', goal:'referral', module:'standard',
+    en:{eyebrow:'Physician Referral', title:'Refer A Patient For *Specialist* Wound Care',
+        body:'We provide nurse-led home wound and diabetic-foot management, with clinical updates back to you.', cta:'Refer your patient today.'},
+    ar:{eyebrow:'إحالة طبية', title:'أحل مريضك لرعاية *متخصصة* للجروح',
+        body:'نقدّم إدارة منزلية للجروح والقدم السكرية بإشراف ممرّضين، مع تحديثات سريرية إليك.', cta:'أحل مريضك اليوم.'} },
+  { label:'Our clinical scope', sub:'Checklist · capabilities', goal:'referral', module:'checklist',
+    en:{eyebrow:'Physician Referral', title:'What We *Manage* At Home',
+        items:['Complex and chronic wounds','Diabetic foot ulcers','Post-operative wound care','Pressure injury care'], cta:'Clinical support available.'},
+    ar:{eyebrow:'إحالة طبية', title:'ما *ندير*ه في المنزل',
+        items:['الجروح المعقّدة والمزمنة','قرحات القدم السكري','العناية بالجروح بعد العمليات','العناية بقرحات الضغط'], cta:'دعم سريري متاح.'} },
+  { label:"We're hiring", sub:'Standard · open role', goal:'recruitment', module:'standard',
+    en:{eyebrow:'Join CuraNova', title:"We're *Hiring* Wound Care Nurses",
+        body:'Join a nurse-led home-care team making a real difference across Beirut.', cta:'Apply today.'},
+    ar:{eyebrow:'انضم إلى CuraNova', title:'نبحث عن *ممرّضين* للعناية بالجروح',
+        body:'انضم إلى فريق رعاية منزلية بقيادة ممرّضين يُحدث فرقاً حقيقياً في بيروت.', cta:'قدّم اليوم.'} },
+  { label:'Why join us', sub:'Checklist · what we offer', goal:'recruitment', module:'checklist',
+    en:{eyebrow:'Join CuraNova', title:'Why Nurses *Choose* CuraNova',
+        items:['Specialist wound-care training','Supportive clinical team','Flexible home-visit schedule','Meaningful patient impact'], cta:'Join our team.'},
+    ar:{eyebrow:'انضم إلى CuraNova', title:'لماذا *يختار* الممرّضون CuraNova',
+        items:['تدريب متخصص في العناية بالجروح','فريق سريري داعم','جدول زيارات منزلية مرن','أثر حقيقي في حياة المرضى'], cta:'انضم إلى فريقنا.'} },
+  { label:'Workshop invite', sub:'Standard · event details', goal:'event', module:'standard',
+    en:{eyebrow:'CuraNova Event', title:'Free Diabetic Foot *Workshop*',
+        body:'Add the date, time and place. A short, practical session for patients and caregivers.', cta:'Save your spot.'},
+    ar:{eyebrow:'فعالية CuraNova', title:'ورشة مجانية عن *القدم السكرية*',
+        body:'أضف التاريخ والوقت والمكان. جلسة عملية قصيرة للمرضى ومقدّمي الرعاية.', cta:'احجز مكانك.'} },
+  { label:'Awareness day', sub:'Standard · mark the day', goal:'event', module:'standard',
+    en:{eyebrow:'CuraNova Event', title:'Marking *Diabetic Foot* Awareness Day',
+        body:'Join us to learn simple habits that protect feet and prevent wounds.', cta:'Join us live.'},
+    ar:{eyebrow:'فعالية CuraNova', title:'نحيي يوم التوعية بـ *القدم السكرية*',
+        body:'انضم إلينا لتتعلّم عادات بسيطة تحمي القدمين وتمنع الجروح.', cta:'انضم إلينا مباشرة.'} },
+  { label:'Spread the word', sub:'Standard · shareable message', goal:'awareness', module:'standard',
+    en:{eyebrow:'Patient Safety', title:'Help Us Spread *Foot-Care* Awareness',
+        body:'A small share could help someone catch a problem early. Pass it on.', cta:'Share to raise awareness.'},
+    ar:{eyebrow:'سلامة المريض', title:'ساعدنا في نشر الوعي بـ *العناية بالقدم*',
+        body:'مشاركة صغيرة قد تساعد شخصاً على اكتشاف مشكلة مبكراً. مرّرها للآخرين.', cta:'شارك لرفع الوعي.'} },
+  { label:'Start the conversation', sub:'Quote · a human voice', goal:'awareness', module:'quote',
+    en:{eyebrow:'Patient Voice', title:'Early care changed *everything* for me.', attrib:'— Patient, Beirut', cta:'Start the conversation.'},
+    ar:{eyebrow:'صوت المريض', title:'الرعاية المبكرة غيّرت *كل شيء* بالنسبة لي.', attrib:'— مريض، بيروت', cta:'ابدأ الحديث.'} }
+];
+function renderTemplates(){
+  const g = document.getElementById('tplGoal').value;
+  const list = TEMPLATES.filter(t => t.goal === g);
+  document.getElementById('tplGallery').innerHTML = list.length
+    ? list.map(t => `<button data-tpl="${TEMPLATES.indexOf(t)}">${esc(t.label)}<small>${esc(t.sub)}</small></button>`).join('')
+    : '<span class="empty">No templates for this goal yet.</span>';
+}
+function applyTemplate(t, asNew){
+  if(!t) return;
+  let slide;
+  if(asNew){ slide = blankSlide(); slide.theme = S().theme; slide.comp = S().comp;
+             state.slides.push(slide); state.active = state.slides.length - 1; }
+  else slide = S();
+  slide.module = t.module; slide.goal = t.goal; if(t.theme) slide.theme = t.theme;
+  state.redIdx = 0;
+  ['en','ar'].forEach(L => {
+    const src = t[L] || {}, dst = slide[L];
+    ['eyebrow','title','body','cta','myth','fact','stat','statLabel','attrib','beforeLbl','afterLbl'].forEach(k => { if(src[k] != null) dst[k] = src[k]; });
+    if(Array.isArray(src.items)) dst.items = src.items.slice();
+  });
+  toolbars(); panel(); render();
+  note('Loaded the “' + t.label + '” template. Fill in the details and verify every clinical claim.');
+}
+(function initTemplates(){
+  const gsel = document.getElementById('tplGoal');
+  gsel.value = S().goal || 'education';
+  gsel.addEventListener('change', renderTemplates);
+  document.getElementById('tplGallery').addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b || b.dataset.tpl == null) return;
+    applyTemplate(TEMPLATES[+b.dataset.tpl], document.getElementById('tplNew').checked);
+  });
+  renderTemplates();
+})();
+
+/* ================= brand kits ================= */
+/* A saved, named bundle of brand identity (footer, WhatsApp, theme, goal,
+   voice) that can be applied to one post or all posts in one click. Kits
+   live in this browser under their own key — independent of the autosave. */
+const KITS_KEY = 'curanova.brandkits.v1';
+function loadKits(){ try { return JSON.parse(localStorage.getItem(KITS_KEY)) || []; } catch(_) { return []; } }
+function saveKits(list){ try { localStorage.setItem(KITS_KEY, JSON.stringify(list)); } catch(_){} }
+function kitFromState(name){
+  return { name, brand: JSON.parse(JSON.stringify(state.brand)),
+    theme: S().theme, goal: S().goal || 'education', waOn: !!S().waOn, waNum: S().waNum || '',
+    tone: state.tone, dialect: state.dialect };
+}
+function renderKits(sel){
+  const el = document.getElementById('kitPick'), list = loadKits();
+  el.innerHTML = list.length
+    ? list.map((k,i) => `<option value="${i}">${esc(k.name)}</option>`).join('')
+    : '<option value="">No kits saved yet</option>';
+  if(sel != null && list.length) el.value = Math.min(sel, list.length - 1);
+}
+function applyKit(k, all){
+  if(!k) return;
+  if(k.brand) state.brand = JSON.parse(JSON.stringify(k.brand));
+  if(k.tone) state.tone = k.tone;
+  if(k.dialect) state.dialect = k.dialect;
+  (all ? state.slides : [S()]).forEach(s => {
+    if(k.theme) s.theme = k.theme;
+    if(k.goal) s.goal = k.goal;
+    s.waOn = !!k.waOn; if(k.waNum) s.waNum = k.waNum;
+  });
+  syncTone(); toolbars(); panel(); render();
+  note('Applied brand kit “' + k.name + '”' + (all ? ' to all posts.' : ' to this post.'));
+}
+(function initKits(){
+  let list = loadKits();
+  if(!list.length){ list = [kitFromState('CuraNova default')]; saveKits(list); }
+  renderKits(0);
+  const pick = () => loadKits()[+document.getElementById('kitPick').value];
+  document.getElementById('kitApply').onclick = () => applyKit(pick(), false);
+  document.getElementById('kitApplyAll').onclick = () => applyKit(pick(), true);
+  document.getElementById('kitSave').onclick = () => {
+    const name = (prompt('Name this brand kit:', '') || '').trim(); if(!name) return;
+    const list = loadKits(), i = list.findIndex(k => k.name.toLowerCase() === name.toLowerCase());
+    if(i >= 0) list[i] = kitFromState(name); else list.push(kitFromState(name));
+    saveKits(list); renderKits(i >= 0 ? i : list.length - 1);
+    note('Saved brand kit “' + name + '”.');
+  };
+  document.getElementById('kitDel').onclick = () => {
+    const el = document.getElementById('kitPick'), list = loadKits();
+    if(!list.length || el.value === '') return;
+    if(!confirm('Delete this brand kit?')) return;
+    list.splice(+el.value, 1); saveKits(list); renderKits(0);
+  };
 })();
 
 /* ================= export ================= */
