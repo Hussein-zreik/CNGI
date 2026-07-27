@@ -198,6 +198,18 @@ body.gridview .stage{display:none}
 .meet .body{max-width:88%}
 .post.ar .meet-role{font-family:var(--ar-body)}
 
+/* Mini infographic — labelled bars */
+.bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(28px*var(--u))}
+.bars .bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:calc(11px*var(--u))}
+.bars .bar-lab{font-size:calc(30px*var(--fit)*var(--u));font-weight:600;color:var(--ink)}
+.bars .bar-val{font-family:var(--serif);font-size:calc(42px*var(--u));font-weight:700;color:var(--teal)}
+.bars .bar-track{position:relative;height:calc(24px*var(--u));border-radius:100px;background:rgba(24,60,100,.10);overflow:hidden}
+.bars .bar-track i{position:absolute;top:0;left:0;height:100%;border-radius:100px;background:linear-gradient(90deg,var(--teal),var(--teal-lt))}
+.post.rtl .bars .bar-track i{left:auto;right:0}
+.post.navy .bars .bar-lab{color:rgba(255,255,255,.82)} .post.navy .bars .bar-val{color:var(--teal-lt)}
+.post.navy .bars .bar-track{background:rgba(255,255,255,.14)}
+.post.ar .bars .bar-lab,.post.ar .bars .bar-val{font-family:var(--ar-body)}
+
 /* Bold PSA (full-bleed statement) */
 .post.psapost{background:var(--teal)}
 .post.psapost.navy{background:var(--navy)}
@@ -599,6 +611,7 @@ body.gridview .stage{display:none}
           <option value="meet">Meet the nurse</option>
           <option value="myth">Myth vs Fact</option>
           <option value="stat">Stat block</option>
+          <option value="bars">Mini infographic (bars)</option>
           <option value="quote">Quote / testimonial</option>
           <option value="photofull">Photo · full bleed</option>
           <option value="photosplit">Photo · above text</option>
@@ -1107,6 +1120,14 @@ function moduleHtml(slide, lang, f, u){
   if(m === 'checklist')
     return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
       <ul class="checks">${items.map(t=>`<li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 13l5 5L20 6"/></svg></span><span>${E(t)}</span></li>`).join('')}</ul>`;
+  if(m === 'bars'){
+    const rows = items.map(it => {
+      const p = String(it).split('|'), lab = (p[0]||'').trim();
+      const val = Math.max(0, Math.min(100, parseFloat(String(p[1]||'').replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))) || 0));
+      return `<li><div class="bar-top"><span class="bar-lab">${E(lab)}</span><span class="bar-val">${D(val)}${lang==='ar'?'٪':'%'}</span></div><div class="bar-track"><i style="width:${val}%"></i></div></li>`;
+    }).join('');
+    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><ul class="bars">${rows}</ul>`;
+  }
   if(m === 'compare')
     return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
       <div class="compare">
@@ -1377,6 +1398,7 @@ const FIELDS = {
   steps:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Steps (one per line)','list'],['cta','Call to action','input']],
   checklist:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Items (one per line)','list'],['cta','Call to action','input']],
   compare:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items',"Do's (one per line)",'list'],['items2',"Don'ts (one per line)",'list'],['cta','Call to action','input']],
+  bars:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Bars — one per line as Label|percent','list'],['cta','Call to action','input']],
   faq:[['eyebrow','Eyebrow','input'],['title','Question','area'],['body','Answer','area'],['cta','Call to action','input']],
   thisorthat:[['eyebrow','Eyebrow','input'],['title','Question','area'],['myth','This — option A','area'],['fact','That — option B','area'],['cta','Call to action','input']],
   testimonial:[['eyebrow','Eyebrow','input'],['title','Review text','area'],['attrib','Attribution','input'],['cta','Call to action','input']],
@@ -2161,6 +2183,11 @@ const TEMPLATES = [
         fact:'What current evidence actually supports.', cta:'Learn more.'},
     ar:{eyebrow:'خرافة وحقيقة', title:'هل هذا *صحيح*؟', myth:'اعتقاد شائع بين المرضى.',
         fact:'ما يدعمه الدليل العلمي فعلاً.', cta:'اعرف المزيد.'} },
+  { label:'By the numbers (bars)', sub:'Infographic · labelled bars', goal:'education', module:'bars',
+    en:{eyebrow:'By The Numbers', title:'Diabetic Foot Risk, *At A Glance*',
+        items:['Amputations that are preventable|85','Patients who skip daily checks|60','Wounds caught earlier at home|75'], cta:'Learn more.'},
+    ar:{eyebrow:'بالأرقام', title:'مخاطر القدم السكرية *بلمحة*',
+        items:['حالات بتر يمكن تفاديها|85','مرضى يهملون الفحص اليومي|60','جروح تُكتشف أبكر في المنزل|75'], cta:'اعرف المزيد.'} },
   { label:'By the numbers', sub:'Stat · lead with a figure', goal:'education', module:'stat',
     en:{eyebrow:'By The Numbers', stat:'85%', statLabel:'What the figure means',
         body:'One short sentence explaining why this number matters.', cta:'Stay informed.'},
