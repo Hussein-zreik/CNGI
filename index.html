@@ -97,6 +97,44 @@ body.gridview .stage{display:none}
 .statlabel{font-size:calc(32px*var(--fit)*var(--u));font-weight:600;color:var(--navy);margin:calc(14px*var(--u)) 0 0}
 .attrib{font-size:calc(25px*var(--u));font-weight:600;color:var(--teal);margin:calc(26px*var(--u)) 0 0}
 
+/* feature icon (above the headline) */
+.ficon{align-self:flex-start;width:calc(74px*var(--u));height:calc(74px*var(--u));border-radius:calc(20px*var(--u));
+  background:rgba(16,147,142,.10);display:flex;align-items:center;justify-content:center;margin-bottom:calc(22px*var(--u))}
+.ficon svg{width:calc(40px*var(--u));height:calc(40px*var(--u));stroke:var(--teal);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.post.navy .ficon{background:rgba(24,183,176,.16)} .post.navy .ficon svg{stroke:var(--teal-lt)}
+.post.rtl .ficon{align-self:flex-end}
+
+/* Do's & Don'ts */
+.compare{display:flex;gap:calc(30px*var(--u));align-items:stretch}
+.compare .ccol{flex:1;display:flex;flex-direction:column}
+.compare .chd{display:flex;align-items:center;gap:calc(12px*var(--u));font-size:calc(24px*var(--u));font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:calc(16px*var(--u))}
+.compare .do .chd{color:var(--teal)} .compare .dont .chd{color:#B04A4A}
+.compare .cmk{flex:0 0 calc(38px*var(--u));height:calc(38px*var(--u));border-radius:calc(10px*var(--u));display:flex;align-items:center;justify-content:center}
+.compare .do .cmk{background:rgba(16,147,142,.12)} .compare .dont .cmk{background:rgba(176,74,74,.12)}
+.compare .cmk svg{width:calc(22px*var(--u));height:calc(22px*var(--u));stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.compare .do .cmk svg{stroke:var(--teal)} .compare .dont .cmk svg{stroke:#B04A4A}
+.compare ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(14px*var(--u))}
+.compare li{font-size:calc(27px*var(--fit)*var(--u));line-height:1.36;color:var(--ink);padding-left:calc(18px*var(--u));position:relative}
+.compare li:before{content:"";position:absolute;left:0;top:calc(13px*var(--u));width:calc(7px*var(--u));height:calc(7px*var(--u));border-radius:50%;background:rgba(24,60,100,.32)}
+.post.rtl .compare li{padding-left:0;padding-right:calc(18px*var(--u))} .post.rtl .compare li:before{left:auto;right:0}
+.post.navy .compare li{color:rgba(255,255,255,.80)} .post.navy .compare .dont .chd,.post.navy .compare .dont .cmk svg{color:#F0A0A0;stroke:#F0A0A0}
+
+/* Q&A */
+.faq{display:flex;flex-direction:column;gap:calc(28px*var(--u))}
+.faq .qrow,.faq .arow{display:flex;align-items:flex-start;gap:calc(20px*var(--u))}
+.faq .qa{flex:0 0 calc(52px*var(--u));height:calc(52px*var(--u));border-radius:50%;font-family:var(--sans);font-size:calc(26px*var(--u));
+  font-weight:700;display:flex;align-items:center;justify-content:center}
+.faq .qa.q{background:var(--navy);color:#fff} .faq .qa.a{background:var(--teal);color:#fff}
+.faq .arow .body{padding-top:calc(6px*var(--u))}
+
+/* photo treatments */
+.fxov{position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:multiply}
+.fx-teal>.fxov{background:var(--teal)} .fx-navy>.fxov{background:var(--navy)}
+.fx-teal,.fx-navy{--fxo:.55} .fx-teal>.fxov,.fx-navy>.fxov{opacity:var(--fxo)}
+.fx-gray{filter:grayscale(1)}
+.phbox .lbl,.phbox .scalebar,.sp-frame .scalebar{z-index:2}
+
 /* photo blocks */
 .phbox{position:relative;width:100%;border-radius:calc(18px*var(--u));overflow:hidden;background:#DCE4EC;background-repeat:no-repeat;flex:0 0 auto}
 .phbox .lbl{position:absolute;top:calc(16px*var(--u));left:calc(16px*var(--u));background:rgba(15,42,72,.82);color:#fff;
@@ -288,6 +326,8 @@ body.gridview .stage{display:none}
 .gallery button small{display:block;font-weight:500;font-size:10px;color:#8496A6;margin-top:2px}
 .gallery button:hover small{color:var(--teal)}
 .gallery .empty{font-size:11px;color:#8496A6}
+.carmeter{font-size:11.5px;font-weight:600;margin-top:2px}
+.carmeter.ok{color:#2E9E6B}.carmeter.warn{color:#C67C1E}.carmeter.stop{color:#C4453F}
 </style>
 
 <div class="app">
@@ -344,6 +384,18 @@ body.gridview .stage{display:none}
     </div>
 
     <div class="sec">
+      <h3>Carousel builder</h3>
+      <div class="two">
+        <div class="fld"><label for="carN">Slides</label><select id="carN">
+          <option value="3">3 slides</option><option value="4" selected>4 slides</option><option value="5">5 slides</option>
+        </select></div>
+        <div class="fld"><label>&nbsp;</label><button class="btn ghost" id="carBuild" style="margin:0;padding:9px 0">Build carousel</button></div>
+      </div>
+      <div id="carMeter" class="carmeter"></div>
+      <p class="note">Turns the first topic line into a hook → points → CTA sequence sharing this post's theme, goal and brand. Replaces the current slides.</p>
+    </div>
+
+    <div class="sec">
       <h3>Content library</h3>
       <div class="fld" style="margin-bottom:8px">
         <label for="libPick">Ready-made clinical posts</label>
@@ -393,6 +445,8 @@ body.gridview .stage{display:none}
           <option value="standard">Title + body</option>
           <option value="steps">Numbered steps</option>
           <option value="checklist">Checklist</option>
+          <option value="compare">Do's &amp; Don'ts</option>
+          <option value="faq">Q &amp; A</option>
           <option value="myth">Myth vs Fact</option>
           <option value="stat">Stat block</option>
           <option value="quote">Quote / testimonial</option>
@@ -424,6 +478,7 @@ body.gridview .stage{display:none}
         </select></div>
         <div class="fld"><label>Grid rhythm</label><button class="btn ghost" id="varyBtn" style="margin:0;padding:9px 0">Vary across slides</button></div>
       </div>
+      <div class="fld" style="margin-top:4px"><label>Feature icon <span style="color:#8496A6">— above the headline</span></label><div id="iconChips" class="tagchips"></div></div>
       <div id="fields"></div>
       <datalist id="catList">
         <option value="Wound Care Education"></option>
@@ -464,6 +519,12 @@ body.gridview .stage{display:none}
         <div class="fld"><label for="posY">Vertical</label><input type="range" id="posY" min="0" max="100" value="50"></div>
       </div>
       <div class="fld"><label for="posX">Horizontal</label><input type="range" id="posX" min="0" max="100" value="50"></div>
+      <div class="fld"><label for="photoFx">Photo treatment</label><select id="photoFx">
+        <option value="none">Original</option>
+        <option value="teal">Teal tint</option>
+        <option value="navy">Navy tint</option>
+        <option value="gray">Black &amp; white</option>
+      </select></div>
       <label class="chk"><input type="checkbox" id="scaleBar"> Show 1 cm scale marker</label>
       <div class="sec" style="border-top:1px dashed #E3E9EF;margin-top:12px">
         <h3>Consent record</h3>
@@ -538,6 +599,7 @@ body.gridview .stage{display:none}
       <h3>Export</h3>
       <div class="two"><button class="btn dark" id="dl1">PNG @1x</button><button class="btn dark" id="dl2">PNG @2x</button></div>
       <button class="btn ghost" id="dlAll">Export all slides</button>
+      <button class="btn ghost" id="dlSheet">Contact sheet (PNG)</button>
       <button class="btn ghost" id="dlVid">Animated cover (WebM)</button>
       <div class="two"><button class="btn ghost" id="save">Save .json</button><button class="btn ghost" id="load">Load .json</button></div>
       <button class="btn ghost" id="csv">Export schedule CSV</button>
@@ -574,19 +636,21 @@ const PHOTO_MODULES = ['photofull','photosplit','beforeafter'];
 const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, aspect:1.5});
 const blankSlide = () => ({
   module:'standard', theme:'light', comp:'swoosh', swoosh:'a', disclaimer:false,
-  goal:'education', waOn:false, waNum:'+961 79 093 599',
+  goal:'education', waOn:false, waNum:'+961 79 093 599', icon:'', photoFx:'none',
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
   en:{eyebrow:'Wound Care Education', title:'Your title goes *here*',
       body:'Body text goes here — one or two short sentences that carry the takeaway.',
       cta:'Save this post', items:['First step','Second step','Third step'],
+      items2:['Avoid this','Avoid that'],
       myth:'What people believe.', fact:'What the evidence says.',
       stat:'85%', statLabel:'Label for the figure', attrib:'— Patient, Beirut',
       beforeLbl:'Week 0', afterLbl:'Week 6', caption:'', tags:[]},
   ar:{eyebrow:'نصيحة للعناية بالجروح', title:'ضع عنوانك *هنا*',
       body:'يوضع النص هنا — جملة أو جملتان تحملان الفكرة الأساسية.',
       cta:'احفظ المنشور', items:['الخطوة الأولى','الخطوة الثانية','الخطوة الثالثة'],
+      items2:['تجنّب هذا','تجنّب ذاك'],
       myth:'ما يعتقده الناس.', fact:'ما يقوله الدليل العلمي.',
       stat:'٨٥٪', statLabel:'وصف الرقم', attrib:'— مريض، بيروت',
       beforeLbl:'الأسبوع ٠', afterLbl:'الأسبوع ٦', caption:'', tags:[]}
@@ -749,6 +813,23 @@ function phStyle(p, boxW, boxH){
   return `background-image:url(${src});background-size:${pct.toFixed(1)}% auto;background-position:${p.px}% ${p.py}%`;
 }
 
+/* ================= icon library ================= */
+/* One inline line-icon set (navy/teal stroke, thin, rounded) that can sit
+   above the headline in any text module. */
+const ICONS = {
+  home:   {label:'Home visit',   svg:'<path d="M3 11l9-7 9 7"/><path d="M5 10v9h14v-9"/>'},
+  heart:  {label:'Care',         svg:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z"/>'},
+  shield: {label:'Safety',       svg:'<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/>'},
+  drop:   {label:'Wound',        svg:'<path d="M12 3c3 4 5 6.5 5 9a5 5 0 0 1-10 0c0-2.5 2-5 5-9z"/>'},
+  bandage:{label:'Dressing',     svg:'<rect x="3.5" y="9" width="17" height="6" rx="3"/><circle cx="9.5" cy="12" r=".7"/><circle cx="12" cy="12" r=".7"/><circle cx="14.5" cy="12" r=".7"/>'},
+  pulse:  {label:'Health',       svg:'<path d="M3 12h4l2-5 4 10 2-5h6"/>'},
+  steth:  {label:'Clinical',     svg:'<path d="M6 3v5a4 4 0 0 0 8 0V3"/><path d="M10 12v3a5 5 0 0 0 10 0v-2"/><circle cx="20" cy="11" r="2"/>'},
+  calendar:{label:'Schedule',    svg:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9h16M9 3v4M15 3v4"/>'},
+  book:   {label:'Education',    svg:'<path d="M4 5a2 2 0 0 1 2-2h6v16H6a2 2 0 0 0-2 2z"/><path d="M20 5a2 2 0 0 0-2-2h-6v16h6a2 2 0 0 1 2 2z"/>'},
+  phone:  {label:'Contact',      svg:'<path d="M4 20l1.4-4.1A8 8 0 1 1 8.6 19.1z"/><path d="M8.6 9.4c0 3.3 2.7 6 6 6"/>'}
+};
+const iconBadge = key => (key && ICONS[key]) ? `<div class="ficon"><svg viewBox="0 0 24 24">${ICONS[key].svg}</svg></div>` : '';
+
 /* ================= canvas painting ================= */
 function moduleHtml(slide, lang, f, u){
   const c = slide[lang], m = slide.module;
@@ -757,53 +838,70 @@ function moduleHtml(slide, lang, f, u){
   const E = s => D(esc(s));
   const H = s => D(hl(s));
   const eyebrow = c.eyebrow ? `<span class="eyebrow">${E(c.eyebrow)}</span>` : '';
+  const ic = iconBadge(slide.icon);
   const items = (c.items||[]).filter(t => String(t).trim());
+  const items2 = (c.items2||[]).filter(t => String(t).trim());
+  const fx = (slide.photoFx && slide.photoFx !== 'none') ? ' fx-' + slide.photoFx : '';
+  const fxov = /^(teal|navy)$/.test(slide.photoFx||'') ? '<span class="fxov"></span>' : '';
   const padX = state.style==='refined' ? 0 : 54*u, padY = state.style==='refined' ? 0 : 36*u;
   const innerW = f.w - 2*78*u - 2*padX;
   const innerH = (f.h - f.frameTop*u - f.frameBot*u) - 2*padY;
   const bar = slide.scaleBar ? `<div class="scalebar"><i></i><span>${lang==='ar'?'١ سم':'1 cm'}</span></div>` : '';
 
   if(m === 'photofull'){
-    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
+    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
   }
   if(m === 'photosplit'){
     /* Photo on the right as a ringed panel; text column on the left. Sized/centred
        to sit clear of the corner wedge and the bottom swoosh. */
     const mw = Math.round(innerW * 0.40), mh = Math.round(mw * 1.16);
     return `<div class="sidephoto">
-      <div class="sp-text">${eyebrow}<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p></div>
-      <div class="sp-media"><div class="sp-frame" style="height:${mh}px;${phStyle(slide.photos[0], mw, mh)}">${bar}</div></div>
+      <div class="sp-text">${ic}${eyebrow}<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p></div>
+      <div class="sp-media"><div class="sp-frame${fx}" style="height:${mh}px;${phStyle(slide.photos[0], mw, mh)}">${fxov}${bar}</div></div>
     </div>`;
   }
   if(m === 'beforeafter'){
     const bw = (innerW - 22*u)/2, bh = Math.round(innerH * 0.62);
     return eyebrow + `<div class="ba">
-        <div class="phbox" style="height:${bh}px;${phStyle(slide.photos[0], bw, bh)}"><span class="lbl">${lang==='ar'?'قبل':'Before'}</span>${bar}</div>
-        <div class="phbox" style="height:${bh}px;${phStyle(slide.photos[1], bw, bh)}"><span class="lbl">${lang==='ar'?'بعد':'After'}</span>${bar}</div>
+        <div class="phbox${fx}" style="height:${bh}px;${phStyle(slide.photos[0], bw, bh)}">${fxov}<span class="lbl">${lang==='ar'?'قبل':'Before'}</span>${bar}</div>
+        <div class="phbox${fx}" style="height:${bh}px;${phStyle(slide.photos[1], bw, bh)}">${fxov}<span class="lbl">${lang==='ar'?'بعد':'After'}</span>${bar}</div>
       </div>
       <div class="balabel"><span>${E(c.beforeLbl)}</span><span>${E(c.afterLbl)}</span></div>
       <div class="rule"></div><p class="body">${H(c.body)}</p>`;
   }
   if(m === 'steps')
-    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
+    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
       <ol class="steps">${items.map((t,i)=>`<li><span class="n">${num(i+1,lang)}</span><span>${E(t)}</span></li>`).join('')}</ol>`;
   if(m === 'checklist')
-    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
+    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
       <ul class="checks">${items.map(t=>`<li><span class="tick"><svg viewBox="0 0 24 24"><path d="M4 13l5 5L20 6"/></svg></span><span>${E(t)}</span></li>`).join('')}</ul>`;
+  if(m === 'compare')
+    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
+      <div class="compare">
+        <div class="ccol do"><div class="chd"><span class="cmk"><svg viewBox="0 0 24 24"><path d="M4 13l5 5L20 6"/></svg></span>${lang==='ar'?'افعل':"Do"}</div>
+          <ul>${items.map(t=>`<li>${E(t)}</li>`).join('')}</ul></div>
+        <div class="ccol dont"><div class="chd"><span class="cmk"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span>${lang==='ar'?'تجنّب':"Don't"}</div>
+          <ul>${items2.map(t=>`<li>${E(t)}</li>`).join('')}</ul></div>
+      </div>`;
+  if(m === 'faq')
+    return ic + eyebrow + `<div class="faq">
+        <div class="qrow"><span class="qa q">${lang==='ar'?'س':'Q'}</span><h1 class="title">${H(c.title)}</h1></div>
+        <div class="arow"><span class="qa a">${lang==='ar'?'ج':'A'}</span><p class="body">${H(c.body)}</p></div>
+      </div>`;
   if(m === 'myth')
-    return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
+    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>
       <div class="split">
         <div class="col m"><div class="cap">${lang==='ar'?'اعتقاد شائع':'Myth'}</div><div class="txt">${E(c.myth)}</div></div>
         <div class="div"></div>
         <div class="col f"><div class="cap">${lang==='ar'?'الحقيقة':'Fact'}</div><div class="txt">${E(c.fact)}</div></div>
       </div>`;
   if(m === 'stat')
-    return eyebrow + `<p class="stat">${E(c.stat)}</p><p class="statlabel">${E(c.statLabel)}</p>
+    return ic + eyebrow + `<p class="stat">${E(c.stat)}</p><p class="statlabel">${E(c.statLabel)}</p>
       <div class="rule"></div><p class="body">${H(c.body)}</p>`;
   if(m === 'quote')
-    return `<div class="quotemark">&ldquo;</div>` + eyebrow +
+    return `<div class="quotemark">&ldquo;</div>` + ic + eyebrow +
       `<h1 class="title">${H(c.title)}</h1><p class="attrib">${E(c.attrib)}</p>`;
-  return eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
+  return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
 }
 
 function paint(el, slide, f, lang){
@@ -987,6 +1085,8 @@ const FIELDS = {
   standard:[['eyebrow','Eyebrow','input'],['title','Title','area'],['body','Body','area'],['cta','Call to action','input']],
   steps:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Steps (one per line)','list'],['cta','Call to action','input']],
   checklist:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Items (one per line)','list'],['cta','Call to action','input']],
+  compare:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items',"Do's (one per line)",'list'],['items2',"Don'ts (one per line)",'list'],['cta','Call to action','input']],
+  faq:[['eyebrow','Eyebrow','input'],['title','Question','area'],['body','Answer','area'],['cta','Call to action','input']],
   myth:[['eyebrow','Eyebrow','input'],['title','Title','area'],['myth','Myth','area'],['fact','Fact','area'],['cta','Call to action','input']],
   stat:[['eyebrow','Eyebrow','input'],['stat','The figure','input'],['statLabel','Figure label','input'],['body','Body','area'],['cta','Call to action','input']],
   quote:[['eyebrow','Eyebrow','input'],['title','Quote','area'],['attrib','Attribution','input'],['cta','Call to action','input']],
@@ -1003,7 +1103,7 @@ function panel(){
   document.getElementById('texAlpha').value = state.texAlpha;
   document.getElementById('texVal').textContent = state.texAlpha + '%';
   document.getElementById('fields').innerHTML = FIELDS[s.module].map(([key,label,kind]) => {
-    const v = key==='items' ? (C().items||[]).join('\n') : (C()[key] ?? '');
+    const v = (key==='items'||key==='items2') ? (C()[key]||[]).join('\n') : (C()[key] ?? '');
     const tag = kind==='input'
       ? `<input data-k="${key}"${key==='eyebrow'?' list="catList"':key==='cta'?' list="ctaList"':''} value="${esc(v).replace(/"/g,'&quot;')}">`
       : `<textarea data-k="${key}" rows="${kind==='list'?4:2}">${esc(v)}</textarea>`;
@@ -1024,7 +1124,9 @@ function panel(){
   document.getElementById('zoomA').value = p.zoom;
   document.getElementById('posX').value = p.px;
   document.getElementById('posY').value = p.py;
+  document.getElementById('photoFx').value = s.photoFx || 'none';
   document.getElementById('scaleBar').checked = !!s.scaleBar;
+  renderIcons();
   document.getElementById('consentOk').checked = !!s.consent.ok;
   document.getElementById('consentRef').value = s.consent.ref;
   document.getElementById('consentDate').value = s.consent.date;
@@ -1035,11 +1137,11 @@ function panel(){
   document.getElementById('waWrap').style.display = s.waOn ? '' : 'none';
   document.getElementById('slDate').value = s.meta.date;
   document.getElementById('slStatus').value = s.meta.status;
-  drawRed(); safety(); gate(); ctaGen();
+  drawRed(); safety(); gate(); ctaGen(); carouselMeter();
 }
 document.getElementById('fields').addEventListener('input', e => {
   const k = e.target.dataset.k; if(!k) return;
-  C()[k] = k==='items' ? e.target.value.split('\n') : e.target.value;
+  C()[k] = (k==='items'||k==='items2') ? e.target.value.split('\n') : e.target.value;
   safety(); render();
 });
 document.getElementById('module').addEventListener('change', e => { S().module = e.target.value; state.redIdx = 0; panel(); render(); });
@@ -1083,6 +1185,19 @@ function setCta(text){
   const f = document.querySelector('#fields [data-k="cta"]'); if(f) f.value = text;
   render();
 }
+/* ---- feature icon picker ---- */
+function renderIcons(){
+  const el = document.getElementById('iconChips'); if(!el) return;
+  const cur = S().icon || '';
+  const chip = (k, label, inner) => `<button data-icon="${k}" class="${cur===k?'on':''}"${label?` title="${esc(label)}"`:''}>${inner}</button>`;
+  el.innerHTML = chip('', '', 'None') + Object.entries(ICONS).map(([k,v]) =>
+    chip(k, v.label, `<svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px">${v.svg}</svg>`)).join('');
+}
+document.getElementById('iconChips').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b || b.dataset.icon == null) return;
+  S().icon = b.dataset.icon; renderIcons(); render();
+});
+document.getElementById('photoFx').addEventListener('change', e => { S().photoFx = e.target.value; render(); });
 document.getElementById('goal').addEventListener('change', e => { S().goal = e.target.value; ctaGen(); render(); });
 document.getElementById('ctaSuggest').addEventListener('click', e => { if(e.target.closest('#ctaApply')) setCta(ctaSuggest(S().goal||'education', state.lang).cta); });
 document.getElementById('ctaChips').addEventListener('click', e => { const b = e.target.closest('button'); if(b && b.dataset.cta != null) setCta(b.dataset.cta); });
@@ -1832,6 +1947,51 @@ function applyKit(k, all){
   };
 })();
 
+/* ================= carousel builder ================= */
+function carouselMeter(){
+  const el = document.getElementById('carMeter'); if(!el) return;
+  const n = state.slides.length;
+  let cls = 'ok', msg;
+  if(n <= 2) { cls = 'warn'; msg = n + ' slide' + (n>1?'s':'') + ' · add more for a carousel'; }
+  else if(n <= 5) { cls = 'ok'; msg = n + ' slides · ideal carousel length'; }
+  else if(n <= 10){ cls = 'warn'; msg = n + " slides · long — Instagram allows up to 10"; }
+  else { cls = 'stop'; msg = n + " slides · over Instagram's 10-slide limit"; }
+  el.className = 'carmeter ' + cls; el.textContent = msg;
+}
+function buildCarousel(n){
+  const topic = (document.getElementById('topic').value.split('\n')[0] || '').trim();
+  const base = S(), theme = base.theme, comp = base.comp, goal = base.goal || 'education';
+  const tc = topic ? topic.replace(/\s+/g,' ').replace(/\b\w/g, ch => ch.toUpperCase()) : '';
+  const g = GOALS[goal] || GOALS.education, pts = n - 2;
+  const mk = () => { const s = blankSlide(); s.theme = theme; s.comp = comp; s.goal = goal; return s; };
+  const slides = [];
+  const hook = mk(); hook.module = 'standard';
+  hook.en.eyebrow = 'Swipe →'; hook.ar.eyebrow = 'اسحب →';
+  hook.en.title = tc ? tc.replace(/^(\S+)/, '*$1*') : 'Your *hook* goes here';
+  hook.en.body = 'A one-line teaser that makes people want to swipe.';
+  hook.ar.title = 'ضع *العنوان* هنا'; hook.ar.body = 'جملة تشويقية تدفع للمتابعة.';
+  hook.en.cta = 'Swipe to learn more →'; hook.ar.cta = 'اسحب لمعرفة المزيد →';
+  slides.push(hook);
+  for(let i=1;i<=pts;i++){
+    const p = mk(); p.module = 'standard';
+    p.en.eyebrow = '0'+i+' / '+pts; p.ar.eyebrow = '0'+i+' / '+pts;
+    p.en.title = 'Point '+i; p.en.body = 'Add the detail for point '+i+' here.';
+    p.ar.title = 'النقطة '+i; p.ar.body = 'أضف تفاصيل النقطة '+i+' هنا.';
+    p.en.cta = 'Keep swiping →'; p.ar.cta = 'تابع السحب →';
+    slides.push(p);
+  }
+  const last = mk(); last.module = 'standard';
+  last.en.eyebrow = g.label; last.ar.eyebrow = g.label;
+  last.en.title = 'Ready for the *next step*?'; last.en.body = 'CuraNova — home wound & diabetic-foot care in Beirut.';
+  last.ar.title = 'جاهز *للخطوة التالية*؟'; last.ar.body = 'CuraNova — رعاية الجروح والقدم السكرية في المنزل ببيروت.';
+  last.en.cta = g.ctas.en[0]; last.ar.cta = g.ctas.ar[0];
+  slides.push(last);
+  state.slides = slides; state.active = 0;
+  toolbars(); panel(); render();
+  note('Built a ' + n + '-slide carousel from “' + (topic || 'your topic') + '”. Fill in each point and verify every claim.');
+}
+document.getElementById('carBuild').onclick = () => buildCarousel(+document.getElementById('carN').value);
+
 /* ================= export ================= */
 function saveAs(url,name){ const a=document.createElement('a'); a.href=url; a.download=name; a.click(); }
 async function shoot(mult){
@@ -1884,6 +2044,45 @@ document.getElementById('dlAll').onclick = async () => {
   state.active = keep; toolbars(); panel(); render();
   btn.disabled = false; btn.textContent = 'Export all slides';
 };
+/* Contact sheet: render every slide as a square tile into one PNG grid. */
+async function exportContactSheet(){
+  const btn = document.getElementById('dlSheet'), label = btn.textContent; btn.disabled = true;
+  const savedFmt = state.fmt, savedActive = state.active, wasGrid = document.body.classList.contains('gridview');
+  if(wasGrid) document.body.classList.remove('gridview');
+  state.fmt = 'square';
+  const n = Math.min(state.slides.length, 10), shots = [];
+  for(let i=0;i<n;i++){
+    btn.textContent = `Rendering ${i+1}/${n}…`;
+    state.active = i; toolbars(); panel(); render();
+    await new Promise(r => setTimeout(r, 60));
+    shots.push(await shoot(1));
+  }
+  state.fmt = savedFmt; state.active = savedActive;
+  if(wasGrid) document.body.classList.add('gridview');
+  toolbars(); panel(); render();
+  btn.textContent = 'Composing…';
+  const cols = n <= 1 ? 1 : (n <= 4 ? 2 : 3), rows = Math.ceil(n/cols);
+  const tile = 380, gap = 20, pad = 28, bg = 30;
+  const cw = pad*2 + cols*tile + (cols-1)*gap, ch = pad*2 + rows*tile + (rows-1)*gap;
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+  const cx = cv.getContext('2d'); cx.fillStyle = '#F4F7F9'; cx.fillRect(0,0,cw,ch);
+  const imgs = await Promise.all(shots.map(src => new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = src; })));
+  imgs.forEach((im,i) => {
+    const r = Math.floor(i/cols), col = i%cols, x = pad + col*(tile+gap), y = pad + r*(tile+gap), rr = 18;
+    cx.save();
+    cx.beginPath();
+    cx.moveTo(x+rr,y); cx.arcTo(x+tile,y,x+tile,y+tile,rr); cx.arcTo(x+tile,y+tile,x,y+tile,rr);
+    cx.arcTo(x,y+tile,x,y,rr); cx.arcTo(x,y,x+tile,y,rr); cx.closePath(); cx.clip();
+    if(im) cx.drawImage(im,x,y,tile,tile); else { cx.fillStyle = '#DCE4EC'; cx.fillRect(x,y,tile,tile); }
+    cx.restore();
+    cx.fillStyle = '#183C64'; cx.beginPath(); cx.arc(x+bg/2+8, y+bg/2+8, bg/2, 0, Math.PI*2); cx.fill();
+    cx.fillStyle = '#fff'; cx.font = '700 ' + Math.round(bg*0.55) + 'px sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(String(i+1), x+bg/2+8, y+bg/2+9);
+  });
+  saveAs(cv.toDataURL('image/png'), 'curanova-contact-sheet.png');
+  btn.disabled = false; btn.textContent = label;
+}
+document.getElementById('dlSheet').onclick = exportContactSheet;
 document.getElementById('dlVid').onclick = async () => {
   const btn = document.getElementById('dlVid'), label = btn.textContent;
   btn.disabled = true; btn.textContent = 'Rendering frames…';
