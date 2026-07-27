@@ -459,7 +459,14 @@ body.gridview .stage{display:none}
       <details class="aikey">
         <summary>AI copy settings</summary>
         <div class="fld" style="margin-bottom:8px">
-          <label for="apiKey">Anthropic API key — optional</label>
+          <label for="apiProvider">Provider</label>
+          <select id="apiProvider">
+            <option value="anthropic">Anthropic (Claude)</option>
+            <option value="openai">OpenAI (ChatGPT)</option>
+          </select>
+        </div>
+        <div class="fld" style="margin-bottom:8px">
+          <label for="apiKey" id="apiKeyLabel">Anthropic API key — optional</label>
           <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
         </div>
         <div class="fld" style="margin-bottom:6px">
@@ -1668,27 +1675,45 @@ function gate(){
 }
 
 /* ================= Claude copy ================= */
-const AIKEY_KEY = 'curanova.ai.key', AIMODEL_KEY = 'curanova.ai.model', DEFAULT_MODEL = 'claude-sonnet-5';
-function aiKey(){ try{ return (localStorage.getItem(AIKEY_KEY) || '').trim(); }catch(_){ return ''; } }
-function aiModel(){ try{ return (localStorage.getItem(AIMODEL_KEY) || '').trim() || DEFAULT_MODEL; }catch(_){ return DEFAULT_MODEL; } }
-async function callClaude(prompt){
-  const key = aiKey();
-  if(!key) throw new Error('no API key');
+/* BYOK AI — Anthropic (Claude) or OpenAI (ChatGPT). Keys/models are stored
+   per provider in this browser only, never in exports or history. */
+const AI = {
+  anthropic:{ label:'Anthropic', keyLS:'curanova.ai.key',        modelLS:'curanova.ai.model',        defModel:'claude-sonnet-5', keyPh:'sk-ant-…' },
+  openai:   { label:'OpenAI',    keyLS:'curanova.ai.openai.key', modelLS:'curanova.ai.openai.model', defModel:'gpt-4o-mini',     keyPh:'sk-…' }
+};
+const AIPROVIDER_KEY = 'curanova.ai.provider', DEFAULT_MODEL = AI.anthropic.defModel;
+function aiProvider(){ try{ return AI[localStorage.getItem(AIPROVIDER_KEY)] ? localStorage.getItem(AIPROVIDER_KEY) : 'anthropic'; }catch(_){ return 'anthropic'; } }
+function aiKey(){ try{ return (localStorage.getItem(AI[aiProvider()].keyLS) || '').trim(); }catch(_){ return ''; } }
+function aiModel(){ const p = AI[aiProvider()]; try{ return (localStorage.getItem(p.modelLS) || '').trim() || p.defModel; }catch(_){ return p.defModel; } }
+function parseAIJson(text){
+  try { return JSON.parse(String(text).replace(/```json|```/g,'').trim()); }
+  catch(_){ throw new Error('unexpected response format'); }
+}
+async function callAnthropic(prompt, key){
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method:"POST",
-    headers:{
-      "content-type":"application/json",
-      "x-api-key":key,
-      "anthropic-version":"2023-06-01",
-      "anthropic-dangerous-direct-browser-access":"true"
-    },
+    headers:{ "content-type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" },
     body: JSON.stringify({model:aiModel(), max_tokens:1200, messages:[{role:"user", content:prompt}]})
   });
   const data = await res.json().catch(() => ({}));
   if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
-  const text = (data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('');
-  try { return JSON.parse(text.replace(/```json|```/g,'').trim()); }
-  catch(_){ throw new Error('unexpected response format'); }
+  return parseAIJson((data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join(''));
+}
+async function callOpenAI(prompt, key){
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method:"POST",
+    headers:{ "content-type":"application/json", "authorization":"Bearer " + key },
+    body: JSON.stringify({model:aiModel(), max_tokens:1200, response_format:{type:"json_object"},
+      messages:[{role:"user", content:prompt + "\n\nReturn ONLY a JSON object."}]})
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+  return parseAIJson(((data.choices||[])[0]||{}).message ? data.choices[0].message.content : '');
+}
+async function callClaude(prompt){   // kept name for existing callers; dispatches by provider
+  const key = aiKey();
+  if(!key) throw new Error('no API key');
+  return aiProvider() === 'openai' ? callOpenAI(prompt, key) : callAnthropic(prompt, key);
 }
 /* ---- Offline content library: pre-written, bilingual clinical posts ----
    Starting points only — every claim still needs the clinician's review,
@@ -1966,7 +1991,7 @@ document.getElementById('batchBtn').onclick = async () => {
 };
 document.getElementById('transBtn').onclick = async () => {
   const from = state.lang, to = from==='en' ? 'ar' : 'en';
-  if(!aiKey()) return note('Add an Anthropic API key under “AI copy settings” to mirror languages. Offline drafts already fill both sides — refine the other language by hand.');
+  if(!aiKey()) return note('Add an API key (Anthropic or OpenAI) under “AI copy settings” to mirror languages. Offline drafts already fill both sides — refine the other language by hand.');
   const btn = document.getElementById('transBtn'); btn.disabled = true; btn.textContent = 'Mirroring…';
   const src = S()[from];
   const arTarget = state.dialect==='leb' ? 'Lebanese spoken Arabic (لهجة لبنانية)' : 'Modern Standard Arabic (فصحى)';
@@ -1985,18 +2010,27 @@ Return ONLY minified JSON with those same keys.`;
 /* API key / model wiring — stored only in this browser, never in exports or history. */
 function aiStatus(){
   const el = document.getElementById('aiNote'); if(!el) return;
+  const p = AI[aiProvider()];
   el.innerHTML = aiKey()
-    ? 'Live AI on · model <b>' + esc(aiModel()) + '</b>. Key is stored only in this browser and sent straight to Anthropic.'
-    : 'No key set — “Write this post” uses built-in <b>offline templates</b>. Add your Anthropic key for AI drafting in both languages.';
+    ? 'Live AI on · <b>' + esc(p.label) + '</b> · model <b>' + esc(aiModel()) + '</b>. Key is stored only in this browser and sent straight to ' + esc(p.label) + '.'
+    : 'No key set — “Write this post” uses built-in <b>offline templates</b>. Add your ' + esc(p.label) + ' key for AI drafting in both languages.';
 }
 (function initAI(){
-  const k = document.getElementById('apiKey'), m = document.getElementById('apiModel');
-  try { k.value = localStorage.getItem(AIKEY_KEY) || ''; } catch(_){}
-  try { m.value = localStorage.getItem(AIMODEL_KEY) || ''; } catch(_){}
-  m.placeholder = DEFAULT_MODEL;
-  k.addEventListener('input', () => { try { localStorage.setItem(AIKEY_KEY, k.value.trim()); } catch(_){} aiStatus(); });
-  m.addEventListener('input', () => { try { localStorage.setItem(AIMODEL_KEY, m.value.trim()); } catch(_){} aiStatus(); });
-  aiStatus();
+  const prov = document.getElementById('apiProvider'), k = document.getElementById('apiKey'),
+        m = document.getElementById('apiModel'), lbl = document.getElementById('apiKeyLabel');
+  function loadProvider(){
+    const p = AI[aiProvider()];
+    prov.value = aiProvider();
+    lbl.textContent = p.label + ' API key — optional';
+    k.placeholder = p.keyPh; m.placeholder = p.defModel;
+    try { k.value = localStorage.getItem(p.keyLS) || ''; } catch(_){}
+    try { m.value = localStorage.getItem(p.modelLS) || ''; } catch(_){}
+    aiStatus();
+  }
+  prov.addEventListener('change', () => { try { localStorage.setItem(AIPROVIDER_KEY, prov.value); } catch(_){} loadProvider(); });
+  k.addEventListener('input', () => { try { localStorage.setItem(AI[aiProvider()].keyLS, k.value.trim()); } catch(_){} aiStatus(); });
+  m.addEventListener('input', () => { try { localStorage.setItem(AI[aiProvider()].modelLS, m.value.trim()); } catch(_){} aiStatus(); });
+  loadProvider();
 })();
 /* Voice & caption-length controls (studio-wide; restored from autosave) */
 function syncTone(){
