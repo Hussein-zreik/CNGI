@@ -186,6 +186,20 @@ body.gridview .stage{display:none}
 .post.navy .cover .cover-sub{color:rgba(255,255,255,.72)}
 .post.ar .cover .cover-title{line-height:1.28}
 
+/* Story-highlight cover */
+.post.hlpost{background:#fff}
+.post.hlpost.navy{background:var(--navy)}
+.hlcover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(46px*var(--u))}
+.hl-icon svg{width:calc(340px*var(--u));height:calc(340px*var(--u));stroke:var(--teal);stroke-width:1.3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.post.hlpost.navy .hl-icon svg{stroke:var(--teal-lt)}
+.hl-label{font-family:var(--sans);font-size:calc(64px*var(--u));font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--navy)}
+.post.hlpost.navy .hl-label{color:#fff}
+.post.hlpost.ar .hl-label{font-family:var(--ar-display);letter-spacing:0}
+.hl-ring{display:none;position:absolute;left:50%;top:50%;width:calc(600px*var(--u));height:calc(600px*var(--u));transform:translate(-50%,-50%);
+  border:calc(3px*var(--u)) dashed rgba(120,140,160,.55);border-radius:50%;pointer-events:none}
+.post.hlpost.navy .hl-ring{border-color:rgba(255,255,255,.35)}
+.post.hlpost.showsafe .hl-ring{display:block}
+
 /* Swipe index (carousel affordance) — sits at the top of the message flow */
 .swipeix{align-self:center;margin-bottom:calc(26px*var(--u));display:flex;align-items:center;gap:calc(9px*var(--u))}
 .swipeix .d{width:calc(12px*var(--u));height:calc(12px*var(--u));border-radius:50%;background:rgba(24,60,100,.22)}
@@ -549,6 +563,7 @@ body.gridview .stage{display:none}
         <div class="fld"><label for="module">Module</label><select id="module">
           <option value="standard">Title + body</option>
           <option value="cover">Hook cover</option>
+          <option value="highlight">Highlight cover</option>
           <option value="steps">Numbered steps</option>
           <option value="checklist">Checklist</option>
           <option value="compare">Do's &amp; Don'ts</option>
@@ -1110,6 +1125,16 @@ function moduleHtml(slide, lang, f, u){
 function paint(el, slide, f, lang){
   const u = f.w/1080, c = slide[lang], b = state.brand[lang];
   const navy = slide.theme === 'navy';
+  /* Story-highlight cover: solid brand field + one centred icon + short label,
+     no header/CTA/footer. Safe-area shows the circular crop guide. */
+  if(slide.module === 'highlight'){
+    el.className = 'post hlpost' + (navy?' navy':'') + (lang==='ar'?' ar rtl':'') + (state.safe?' showsafe':'');
+    el.style.width = f.w+'px'; el.style.height = f.h+'px'; el.style.setProperty('--u', u);
+    const key = slide.icon || 'heart', icon = (ICONS[key] || ICONS.heart).svg;
+    const label = esc((c.title || '').replace(/\*/g,'').trim());
+    el.innerHTML = `<div class="hlcover"><div class="hl-icon"><svg viewBox="0 0 24 24">${icon}</svg></div>${label?`<div class="hl-label">${label}</div>`:''}</div><div class="hl-ring"></div>`;
+    return;
+  }
   const photoFull = slide.module === 'photofull';
   const footWhite = (f.footWhite || slide.comp === 'watermark') && !photoFull;
   const footdark = photoFull ? false : (!!footWhite !== navy);
@@ -1298,6 +1323,7 @@ document.getElementById('railnav').addEventListener('click', e => {
 const FIELDS = {
   standard:[['eyebrow','Eyebrow','input'],['title','Title','area'],['body','Body','area'],['cta','Call to action','input']],
   cover:[['eyebrow','Kicker','input'],['title','Hook headline','area'],['body','Subtitle (optional)','area'],['cta','Call to action','input']],
+  highlight:[['title','Cover label','input']],
   steps:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Steps (one per line)','list'],['cta','Call to action','input']],
   checklist:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Items (one per line)','list'],['cta','Call to action','input']],
   compare:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items',"Do's (one per line)",'list'],['items2',"Don'ts (one per line)",'list'],['cta','Call to action','input']],
@@ -2126,6 +2152,14 @@ const TEMPLATES = [
     ar:{eyebrow:'نصيحة للعناية بالجروح', title:'هل تفحص قدميك *يومياً*؟',
         body:'فحص يومي من دقيقتين يكشف المشاكل مبكراً.', cta:'اعرف المزيد.',
         stickerQ:'هل تفحص قدميك كل يوم؟', stickerA:'كل يوم', stickerB:'ليس بعد'} },
+  { label:'Highlight · Tips', sub:'Highlight cover · story', goal:'education', module:'highlight', fmt:'story', theme:'navy', icon:'book',
+    en:{title:'Tips'}, ar:{title:'نصائح'} },
+  { label:'Highlight · FAQ', sub:'Highlight cover · story', goal:'education', module:'highlight', fmt:'story', theme:'navy', icon:'steth',
+    en:{title:'FAQ'}, ar:{title:'أسئلة'} },
+  { label:'Highlight · Reviews', sub:'Highlight cover · story', goal:'awareness', module:'highlight', fmt:'story', theme:'navy', icon:'heart',
+    en:{title:'Reviews'}, ar:{title:'آراء'} },
+  { label:'Highlight · Book', sub:'Highlight cover · story', goal:'promotion', module:'highlight', fmt:'story', theme:'navy', icon:'calendar',
+    en:{title:'Book'}, ar:{title:'احجز'} },
   { label:'Hook cover', sub:'Cover · big bold thumbnail', goal:'education', module:'cover',
     en:{eyebrow:'Wound Care Education', title:'*3* Signs A Wound Is Infected', body:'Swipe for the warning signs every diabetic should know.', cta:'Swipe to learn more →'},
     ar:{eyebrow:'نصيحة للعناية بالجروح', title:'*٣* علامات على التهاب الجرح', body:'اسحب لتعرف العلامات التحذيرية التي يجب أن يعرفها كل مريض سكري.', cta:'اسحب لمعرفة المزيد ←'} },
@@ -2229,6 +2263,7 @@ function applyTemplate(t, asNew){
   if(t.stickerEmoji) slide.stickerEmoji = t.stickerEmoji;
   if(t.countDate) slide.countDate = t.countDate;
   if(t.shareBadge) slide.shareBadge = t.shareBadge;
+  if(t.icon) slide.icon = t.icon;
   state.redIdx = 0;
   ['en','ar'].forEach(L => {
     const src = t[L] || {}, dst = slide[L];
