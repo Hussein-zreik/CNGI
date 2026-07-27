@@ -132,6 +132,24 @@ body.gridview .stage{display:none}
 .faq .qa.q{background:var(--navy);color:#fff} .faq .qa.a{background:var(--teal);color:#fff}
 .faq .arow .body{padding-top:calc(6px*var(--u))}
 
+/* Instagram Story sticker mockups */
+.igsticker{align-self:flex-start;width:100%;max-width:calc(560px*var(--u));margin-top:calc(30px*var(--u));background:#fff;
+  border-radius:calc(24px*var(--u));padding:calc(22px*var(--u)) calc(26px*var(--u));box-shadow:0 calc(12px*var(--u)) calc(34px*var(--u)) rgba(15,42,72,.20)}
+.post.rtl .igsticker{align-self:flex-end}
+.igsticker .q{font-size:calc(28px*var(--u));font-weight:700;color:var(--navy);margin-bottom:calc(16px*var(--u));line-height:1.3}
+.igsticker.poll .opts{display:flex;gap:calc(12px*var(--u))}
+.igsticker.poll .opt{flex:1;text-align:center;font-size:calc(26px*var(--u));font-weight:700;color:var(--navy);background:#EEF3F7;border-radius:calc(14px*var(--u));padding:calc(15px*var(--u)) calc(8px*var(--u))}
+.igsticker.poll .opt.correct{background:rgba(16,147,142,.14);color:var(--teal);box-shadow:inset 0 0 0 calc(2px*var(--u)) var(--teal)}
+.igsticker.slider .track{height:calc(22px*var(--u));border-radius:100px;background:linear-gradient(90deg,var(--teal),var(--teal-lt));position:relative;margin-top:calc(6px*var(--u))}
+.igsticker.slider .thumb{position:absolute;top:50%;left:64%;transform:translate(-50%,-50%);font-size:calc(46px*var(--u));filter:drop-shadow(0 calc(3px*var(--u)) calc(6px*var(--u)) rgba(0,0,0,.25))}
+.igsticker.question .field{font-size:calc(24px*var(--u));color:#8496A6;background:#EEF3F7;border-radius:calc(14px*var(--u));padding:calc(15px*var(--u)) calc(18px*var(--u))}
+.igsticker.countdown{text-align:center}
+.igsticker.countdown .q{margin-bottom:calc(10px*var(--u))}
+.igsticker.countdown .timer{font-size:calc(58px*var(--u));font-weight:800;color:var(--teal);line-height:1}
+.igsticker.countdown .timer small{font-size:calc(24px*var(--u));color:#8496A6;font-weight:700}
+.igsticker.countdown .cdate{font-size:calc(22px*var(--u));color:#8496A6;margin-top:calc(8px*var(--u))}
+.post.ar .igsticker .q,.post.ar .igsticker .opt,.post.ar .igsticker .field{font-family:var(--ar-body)}
+
 /* photo treatments */
 .fxov{position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:multiply}
 .fx-teal>.fxov{background:var(--teal)} .fx-navy>.fxov{background:var(--navy)}
@@ -527,6 +545,20 @@ body.gridview .stage{display:none}
       <p class="note">The headline auto-sizes within its brand range to fit two lines; other zones stay fixed. Bars turn amber near a limit and red over it.</p>
     </div>
 
+    <div class="sec">
+      <h3>Story sticker</h3>
+      <div class="fld"><label for="sticker">Sticker mockup</label><select id="sticker">
+        <option value="none">None</option>
+        <option value="poll">Poll</option>
+        <option value="quiz">Quiz</option>
+        <option value="slider">Emoji slider</option>
+        <option value="question">Question box</option>
+        <option value="countdown">Countdown</option>
+      </select></div>
+      <div id="stickerFields"></div>
+      <p class="note">Reserves space for a real Instagram Story sticker — add the live sticker in the app when you post. Best on the 1080×1920 Story size.</p>
+    </div>
+
     <div class="sec" id="photoSec" style="display:none">
       <h3>Photo &amp; privacy</h3>
       <div class="two">
@@ -673,20 +705,21 @@ const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, asp
 const blankSlide = () => ({
   module:'standard', theme:'light', comp:'swoosh', swoosh:'a', disclaimer:false,
   goal:'education', waOn:false, waNum:'+961 79 093 599', icon:'', photoFx:'none',
+  sticker:'none', stickerEmoji:'😍', countDate:'',
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
   en:{eyebrow:'Wound Care Education', title:'Your title goes *here*',
       body:'Body text goes here — one or two short sentences that carry the takeaway.',
       cta:'Save this post', items:['First step','Second step','Third step'],
-      items2:['Avoid this','Avoid that'],
+      items2:['Avoid this','Avoid that'], stickerQ:'', stickerA:'', stickerB:'',
       myth:'What people believe.', fact:'What the evidence says.',
       stat:'85%', statLabel:'Label for the figure', attrib:'— Patient, Beirut',
       beforeLbl:'Week 0', afterLbl:'Week 6', caption:'', tags:[]},
   ar:{eyebrow:'نصيحة للعناية بالجروح', title:'ضع عنوانك *هنا*',
       body:'يوضع النص هنا — جملة أو جملتان تحملان الفكرة الأساسية.',
       cta:'احفظ المنشور', items:['الخطوة الأولى','الخطوة الثانية','الخطوة الثالثة'],
-      items2:['تجنّب هذا','تجنّب ذاك'],
+      items2:['تجنّب هذا','تجنّب ذاك'], stickerQ:'', stickerA:'', stickerB:'',
       myth:'ما يعتقده الناس.', fact:'ما يقوله الدليل العلمي.',
       stat:'٨٥٪', statLabel:'وصف الرقم', attrib:'— مريض، بيروت',
       beforeLbl:'الأسبوع ٠', afterLbl:'الأسبوع ٦', caption:'', tags:[]}
@@ -866,6 +899,39 @@ const ICONS = {
 };
 const iconBadge = key => (key && ICONS[key]) ? `<div class="ficon"><svg viewBox="0 0 24 24">${ICONS[key].svg}</svg></div>` : '';
 
+/* ================= story stickers ================= */
+/* Mockups of Instagram Story stickers, so a Story design reserves the right
+   space. The real interactive sticker is added in the IG app when posting. */
+function stickerHtml(slide, lang){
+  const t = slide.sticker; if(!t || t === 'none') return '';
+  const c = slide[lang], ar = lang === 'ar';
+  const q = esc(c.stickerQ || '');
+  const D = s => ar ? String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]) : String(s);
+  if(t === 'poll' || t === 'quiz'){
+    const a = esc(c.stickerA || (ar?'نعم':'Yes')), b = esc(c.stickerB || (ar?'لا':'No'));
+    const ok = t === 'quiz' ? ' correct' : '';
+    return `<div class="igsticker poll"><div class="q">${q || (ar?'شاركنا رأيك':'Share your opinion')}</div>
+      <div class="opts"><span class="opt${ok}">${a}</span><span class="opt">${b}</span></div></div>`;
+  }
+  if(t === 'slider')
+    return `<div class="igsticker slider"><div class="q">${q || (ar?'ما شعورك؟':'How do you feel?')}</div>
+      <div class="track"><span class="thumb">${esc(slide.stickerEmoji || '😍')}</span></div></div>`;
+  if(t === 'question')
+    return `<div class="igsticker question"><div class="q">${q || (ar?'اسألنا أي شيء':'Ask us anything')}</div>
+      <div class="field">${ar?'اكتب شيئاً…':'Type something…'}</div></div>`;
+  if(t === 'countdown'){
+    let dd = '14', label = '';
+    if(slide.countDate){
+      const target = new Date(slide.countDate + 'T00:00:00');
+      dd = String(Math.max(0, Math.ceil((target - new Date()) / 86400000)));
+      label = target.toLocaleDateString(ar?'ar':'en', {day:'numeric', month:'short', year:'numeric'});
+    }
+    return `<div class="igsticker countdown"><div class="q">${q || (ar?'العد التنازلي':'Countdown')}</div>
+      <div class="timer">${D(dd)} <small>${ar?'يوماً':'days'}</small></div>${label?`<div class="cdate">${esc(label)}</div>`:''}</div>`;
+  }
+  return '';
+}
+
 /* ================= canvas painting ================= */
 function moduleHtml(slide, lang, f, u){
   const c = slide[lang], m = slide.module;
@@ -985,7 +1051,7 @@ function paint(el, slide, f, lang){
       </div>
       <div class="frame${photoFull?' bare':''}" data-frame>
         <span class="bracket tl"></span><span class="bracket br"></span>
-        <div data-fit style="display:flex;flex-direction:column;justify-content:center">${moduleHtml(slide, lang, f, u)}${waHtml}</div>
+        <div data-fit style="display:flex;flex-direction:column;justify-content:center">${moduleHtml(slide, lang, f, u)}${stickerHtml(slide, lang)}${waHtml}</div>
       </div>
       ${disc}
       <div class="action">
@@ -1172,6 +1238,8 @@ function panel(){
   document.getElementById('posY').value = p.py;
   document.getElementById('photoFx').value = s.photoFx || 'none';
   document.getElementById('scaleBar').checked = !!s.scaleBar;
+  document.getElementById('sticker').value = s.sticker || 'none';
+  renderStickerFields();
   renderIcons();
   document.getElementById('consentOk').checked = !!s.consent.ok;
   document.getElementById('consentRef').value = s.consent.ref;
@@ -1244,6 +1312,32 @@ document.getElementById('iconChips').addEventListener('click', e => {
   S().icon = b.dataset.icon; renderIcons(); render();
 });
 document.getElementById('photoFx').addEventListener('change', e => { S().photoFx = e.target.value; render(); });
+/* ---- story sticker controls ---- */
+function renderStickerFields(){
+  const el = document.getElementById('stickerFields'); if(!el) return;
+  const s = S(), c = C(), t = s.sticker || 'none';
+  el.style.display = t === 'none' ? 'none' : '';
+  const inp = (k, label, val, ph, extra) => `<div class="fld"><label>${label}</label><input data-sk="${k}"${extra||''} value="${esc(val||'').replace(/"/g,'&quot;')}" placeholder="${ph||''}"></div>`;
+  let h = '';
+  if(t === 'poll' || t === 'quiz')
+    h = inp('stickerQ','Question',c.stickerQ,'Ask something') +
+        `<div class="two">` + inp('stickerA', t==='quiz'?'Option A (correct)':'Option A', c.stickerA, 'Yes') + inp('stickerB','Option B',c.stickerB,'No') + `</div>`;
+  else if(t === 'slider')
+    h = inp('stickerQ','Prompt',c.stickerQ,'How ready are you?') + inp('emoji','Emoji',s.stickerEmoji,'😍',' maxlength="4" style="width:80px"');
+  else if(t === 'question')
+    h = inp('stickerQ','Prompt',c.stickerQ,'Ask us anything');
+  else if(t === 'countdown')
+    h = inp('stickerQ','Title',c.stickerQ,'World Diabetes Day') + `<div class="fld"><label>Target date</label><input type="date" data-sk="date" value="${esc(s.countDate||'')}"></div>`;
+  el.innerHTML = h;
+}
+document.getElementById('sticker').addEventListener('change', e => { S().sticker = e.target.value; renderStickerFields(); render(); });
+document.getElementById('stickerFields').addEventListener('input', e => {
+  const k = e.target.dataset.sk; if(!k) return;
+  if(k === 'emoji') S().stickerEmoji = e.target.value;
+  else if(k === 'date') S().countDate = e.target.value;
+  else C()[k] = e.target.value;
+  render();
+});
 document.getElementById('goal').addEventListener('change', e => { S().goal = e.target.value; ctaGen(); render(); });
 document.getElementById('ctaSuggest').addEventListener('click', e => { if(e.target.closest('#ctaApply')) setCta(ctaSuggest(S().goal||'education', state.lang).cta); });
 document.getElementById('ctaChips').addEventListener('click', e => { const b = e.target.closest('button'); if(b && b.dataset.cta != null) setCta(b.dataset.cta); });
@@ -1886,6 +1980,13 @@ const TEMPLATES = [
         items:['احمرار يخفّ خلال أيام','حكة خفيفة أثناء الالتئام','سائل صافٍ أو خفيف يتناقص','ألم أقل يوماً بعد يوم'],
         items2:['احمرار ينتشر للخارج','سخونة وتورّم','قيح أو رائحة كريهة','ألم جديد أو متزايد'],
         cta:'اعرف العلامات التحذيرية.'} },
+  { label:'Story · Quick poll', sub:'Story · poll sticker', goal:'education', module:'standard', fmt:'story', sticker:'poll',
+    en:{eyebrow:'Wound Care Education', title:'Do You Check Your Feet *Daily*?',
+        body:'A two-minute daily check catches problems early.', cta:'Learn more.',
+        stickerQ:'Do you check your feet every day?', stickerA:'Every day', stickerB:'Not yet'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'هل تفحص قدميك *يومياً*؟',
+        body:'فحص يومي من دقيقتين يكشف المشاكل مبكراً.', cta:'اعرف المزيد.',
+        stickerQ:'هل تفحص قدميك كل يوم؟', stickerA:'كل يوم', stickerB:'ليس بعد'} },
   { label:'Care at home', sub:'Standard · service spotlight', goal:'promotion', module:'standard',
     en:{eyebrow:'CuraNova Services', title:'Specialist Wound Care, *At Home*',
         body:'Nurse-led wound and diabetic-foot care in the comfort of your home, across Beirut.', cta:'Book a home assessment.'},
@@ -1926,6 +2027,13 @@ const TEMPLATES = [
         body:'Join us to learn simple habits that protect feet and prevent wounds.', cta:'Join us live.'},
     ar:{eyebrow:'فعالية CuraNova', title:'نحيي يوم التوعية بـ *القدم السكرية*',
         body:'انضم إلينا لتتعلّم عادات بسيطة تحمي القدمين وتمنع الجروح.', cta:'انضم إلينا مباشرة.'} },
+  { label:'Story · Countdown', sub:'Story · countdown sticker', goal:'event', module:'standard', fmt:'story', sticker:'countdown',
+    en:{eyebrow:'CuraNova Event', title:'Counting Down To Our *Workshop*',
+        body:'Save the date — a short, practical session for patients and caregivers.', cta:'Save your spot.',
+        stickerQ:'Diabetic Foot Workshop'},
+    ar:{eyebrow:'فعالية CuraNova', title:'العد التنازلي لـ *ورشتنا*',
+        body:'احجز التاريخ — جلسة عملية قصيرة للمرضى ومقدّمي الرعاية.', cta:'احجز مكانك.',
+        stickerQ:'ورشة القدم السكرية'} },
   { label:'Spread the word', sub:'Standard · shareable message', goal:'awareness', module:'standard',
     en:{eyebrow:'Patient Safety', title:'Help Us Spread *Foot-Care* Awareness',
         body:'A small share could help someone catch a problem early. Pass it on.', cta:'Share to raise awareness.'},
@@ -1943,7 +2051,14 @@ const TEMPLATES = [
     en:{eyebrow:'Foot Health', stat:'85%', statLabel:'of diabetes-related amputations are preventable',
         body:'Early checks and timely care make the difference. Pass this on to someone at risk.', cta:'Share to raise awareness.'},
     ar:{eyebrow:'صحة القدم', stat:'٨٥٪', statLabel:'من بتر الأطراف المرتبط بالسكري يمكن تفاديه',
-        body:'الفحص المبكر والرعاية في وقتها يصنعان الفرق. مرّر هذا لشخص معرّض للخطر.', cta:'شارك لرفع الوعي.'} }
+        body:'الفحص المبكر والرعاية في وقتها يصنعان الفرق. مرّر هذا لشخص معرّض للخطر.', cta:'شارك لرفع الوعي.'} },
+  { label:'Story · Ask us anything', sub:'Story · question sticker', goal:'awareness', module:'standard', fmt:'story', sticker:'question',
+    en:{eyebrow:'Patient Safety', title:'Your Foot-Care *Questions*, Answered',
+        body:'Send us anything about wound or diabetic-foot care — no question is too small.', cta:'Start the conversation.',
+        stickerQ:'Ask us about foot care'},
+    ar:{eyebrow:'سلامة المريض', title:'أسئلتك عن *العناية بالقدم*، نجيب عنها',
+        body:'أرسل لنا أي سؤال عن العناية بالجروح أو القدم السكرية — لا سؤال صغير.', cta:'ابدأ الحديث.',
+        stickerQ:'اسألنا عن العناية بالقدم'} }
 ];
 function renderTemplates(){
   const g = document.getElementById('tplGoal').value;
@@ -1959,10 +2074,14 @@ function applyTemplate(t, asNew){
              state.slides.push(slide); state.active = state.slides.length - 1; }
   else slide = S();
   slide.module = t.module; slide.goal = t.goal; if(t.theme) slide.theme = t.theme;
+  if(t.fmt && FORMATS[t.fmt]) state.fmt = t.fmt;
+  if(t.sticker) slide.sticker = t.sticker;
+  if(t.stickerEmoji) slide.stickerEmoji = t.stickerEmoji;
+  if(t.countDate) slide.countDate = t.countDate;
   state.redIdx = 0;
   ['en','ar'].forEach(L => {
     const src = t[L] || {}, dst = slide[L];
-    ['eyebrow','title','body','cta','myth','fact','stat','statLabel','attrib','beforeLbl','afterLbl'].forEach(k => { if(src[k] != null) dst[k] = src[k]; });
+    ['eyebrow','title','body','cta','myth','fact','stat','statLabel','attrib','beforeLbl','afterLbl','stickerQ','stickerA','stickerB'].forEach(k => { if(src[k] != null) dst[k] = src[k]; });
     if(Array.isArray(src.items)) dst.items = src.items.slice();
     if(Array.isArray(src.items2)) dst.items2 = src.items2.slice();
   });
