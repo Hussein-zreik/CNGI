@@ -1810,6 +1810,36 @@ const TEMPLATES = [
         body:'One short sentence explaining why this number matters.', cta:'Stay informed.'},
     ar:{eyebrow:'بالأرقام', stat:'٨٥٪', statLabel:'ماذا يعني الرقم',
         body:'جملة قصيرة تشرح لماذا يهمّ هذا الرقم.', cta:'ابقَ على اطلاع.'} },
+  { label:"Foot-care Do's & Don'ts", sub:"Do's & Don'ts · two columns", goal:'education', module:'compare',
+    en:{eyebrow:'Diabetic Foot Care', title:'Daily *Foot Care* Do’s & Don’ts',
+        items:['Wash and dry gently, including between the toes','Check every day in good light','Moisturise dry skin (not between the toes)','Wear well-fitting shoes and clean socks'],
+        items2:['Walk barefoot, even indoors','Cut calluses or corns yourself','Use hot water or a heating pad','Ignore a new cut, blister or colour change'],
+        cta:'Save this guide.'},
+    ar:{eyebrow:'العناية بالقدم السكرية', title:'ما *تفعله* وما تتجنّبه يومياً للقدم',
+        items:['اغسل وجفّف بلطف، وبين الأصابع','افحص يومياً في إضاءة جيدة','رطّب الجلد الجاف (لا بين الأصابع)','ارتدِ حذاءً مناسباً وجوارب نظيفة'],
+        items2:['المشي حافياً، حتى في المنزل','قصّ المسامير أو الجلد القاسي بنفسك','استخدام الماء الساخن أو أكياس التدفئة','تجاهل جرح أو بثرة أو تغيّر لون جديد'],
+        cta:'احفظ هذا الدليل.'} },
+  { label:'When to worry about a wound', sub:'Q & A · question + answer', goal:'education', module:'faq',
+    en:{eyebrow:'Wound Care Education', title:'When should I worry about a wound?',
+        body:'If redness is spreading, the area is warm or swollen, there is new or worse pain, any pus or bad odour, or it simply is not improving — have it assessed. With diabetes, do not wait.',
+        cta:'Know the warning signs.'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'متى يجب أن أقلق بشأن الجرح؟',
+        body:'إذا كان الاحمرار ينتشر، أو المكان دافئاً أو متورّماً، أو ظهر ألم جديد أو أسوأ، أو خرج قيح أو رائحة كريهة، أو لم يتحسّن — فاطلب تقييماً. مع السكري، لا تنتظر.',
+        cta:'اعرف العلامات التحذيرية.'} },
+  { label:'Healing journey', sub:'Before & after · progress', goal:'education', module:'beforeafter',
+    en:{eyebrow:'Progress', beforeLbl:'Week 0', afterLbl:'Week 6',
+        body:'Structured home wound care, reviewed at each visit. Add your own consented photos.', cta:'Learn more.'},
+    ar:{eyebrow:'التقدّم', beforeLbl:'الأسبوع ٠', afterLbl:'الأسبوع ٦',
+        body:'رعاية منزلية منظّمة للجرح، تُراجَع في كل زيارة. أضف صورك بموافقة المريض.', cta:'اعرف المزيد.'} },
+  { label:'Infection vs normal healing', sub:"Do's & Don'ts · reassure vs red-flag", goal:'education', module:'compare',
+    en:{eyebrow:'Wound Care Education', title:'Normal Healing Or *Infection*?',
+        items:['Redness fading over days','Mild itch as it closes','Clear or light fluid, decreasing','Less pain each day'],
+        items2:['Redness spreading outward','Warmth and swelling','Pus or a bad odour','New or increasing pain'],
+        cta:'Know the warning signs.'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'التئام طبيعي أم *التهاب*؟',
+        items:['احمرار يخفّ خلال أيام','حكة خفيفة أثناء الالتئام','سائل صافٍ أو خفيف يتناقص','ألم أقل يوماً بعد يوم'],
+        items2:['احمرار ينتشر للخارج','سخونة وتورّم','قيح أو رائحة كريهة','ألم جديد أو متزايد'],
+        cta:'اعرف العلامات التحذيرية.'} },
   { label:'Care at home', sub:'Standard · service spotlight', goal:'promotion', module:'standard',
     en:{eyebrow:'CuraNova Services', title:'Specialist Wound Care, *At Home*',
         body:'Nurse-led wound and diabetic-foot care in the comfort of your home, across Beirut.', cta:'Book a home assessment.'},
@@ -1857,7 +1887,17 @@ const TEMPLATES = [
         body:'مشاركة صغيرة قد تساعد شخصاً على اكتشاف مشكلة مبكراً. مرّرها للآخرين.', cta:'شارك لرفع الوعي.'} },
   { label:'Start the conversation', sub:'Quote · a human voice', goal:'awareness', module:'quote',
     en:{eyebrow:'Patient Voice', title:'Early care changed *everything* for me.', attrib:'— Patient, Beirut', cta:'Start the conversation.'},
-    ar:{eyebrow:'صوت المريض', title:'الرعاية المبكرة غيّرت *كل شيء* بالنسبة لي.', attrib:'— مريض، بيروت', cta:'ابدأ الحديث.'} }
+    ar:{eyebrow:'صوت المريض', title:'الرعاية المبكرة غيّرت *كل شيء* بالنسبة لي.', attrib:'— مريض، بيروت', cta:'ابدأ الحديث.'} },
+  { label:'World Diabetes Day', sub:'Stat · dated awareness card', goal:'awareness', module:'stat',
+    en:{eyebrow:'November 14', stat:'1 in 10', statLabel:'adults live with diabetes worldwide',
+        body:'On World Diabetes Day, a two-minute daily foot check can prevent serious wounds. Share to spread the word.', cta:'Share to raise awareness.'},
+    ar:{eyebrow:'١٤ تشرين الثاني', stat:'١ من ١٠', statLabel:'بالغين يعايشون السكري حول العالم',
+        body:'في اليوم العالمي للسكري، فحص يومي للقدم من دقيقتين قد يمنع جروحاً خطيرة. شارك لتنشر التوعية.', cta:'شارك لرفع الوعي.'} },
+  { label:'The number that should worry you', sub:'Stat · high-impact figure', goal:'awareness', module:'stat',
+    en:{eyebrow:'Foot Health', stat:'85%', statLabel:'of diabetes-related amputations are preventable',
+        body:'Early checks and timely care make the difference. Pass this on to someone at risk.', cta:'Share to raise awareness.'},
+    ar:{eyebrow:'صحة القدم', stat:'٨٥٪', statLabel:'من بتر الأطراف المرتبط بالسكري يمكن تفاديه',
+        body:'الفحص المبكر والرعاية في وقتها يصنعان الفرق. مرّر هذا لشخص معرّض للخطر.', cta:'شارك لرفع الوعي.'} }
 ];
 function renderTemplates(){
   const g = document.getElementById('tplGoal').value;
@@ -1878,6 +1918,7 @@ function applyTemplate(t, asNew){
     const src = t[L] || {}, dst = slide[L];
     ['eyebrow','title','body','cta','myth','fact','stat','statLabel','attrib','beforeLbl','afterLbl'].forEach(k => { if(src[k] != null) dst[k] = src[k]; });
     if(Array.isArray(src.items)) dst.items = src.items.slice();
+    if(Array.isArray(src.items2)) dst.items2 = src.items2.slice();
   });
   toolbars(); panel(); render();
   note('Loaded the “' + t.label + '” template. Fill in the details and verify every clinical claim.');
