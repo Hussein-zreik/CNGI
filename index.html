@@ -186,6 +186,18 @@ body.gridview .stage{display:none}
 .post.navy .cover .cover-sub{color:rgba(255,255,255,.72)}
 .post.ar .cover .cover-title{line-height:1.28}
 
+/* Meet the nurse (face-to-brand) */
+.meet{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
+.meet .eyebrow{align-self:center;margin-bottom:calc(28px*var(--u))}
+.meet-photo{position:relative;border-radius:50%;overflow:hidden;background:#DCE4EC;background-repeat:no-repeat;flex:0 0 auto;
+  box-shadow:0 0 0 calc(8px*var(--u)) rgba(16,147,142,.16), 0 0 0 calc(15px*var(--u)) rgba(16,147,142,.07);margin-bottom:calc(34px*var(--u))}
+.post.navy .meet-photo{box-shadow:0 0 0 calc(8px*var(--u)) rgba(24,183,176,.22), 0 0 0 calc(15px*var(--u)) rgba(24,183,176,.10)}
+.meet .title{margin:0}
+.meet-role{font-size:calc(30px*var(--u));font-weight:700;color:var(--teal);letter-spacing:.03em;margin:calc(8px*var(--u)) 0 calc(20px*var(--u))}
+.post.navy .meet-role{color:var(--teal-lt)}
+.meet .body{max-width:88%}
+.post.ar .meet-role{font-family:var(--ar-body)}
+
 /* Story-highlight cover */
 .post.hlpost{background:#fff}
 .post.hlpost.navy{background:var(--navy)}
@@ -570,6 +582,7 @@ body.gridview .stage{display:none}
           <option value="faq">Q &amp; A</option>
           <option value="thisorthat">This or That</option>
           <option value="testimonial">Testimonial ★</option>
+          <option value="meet">Meet the nurse</option>
           <option value="myth">Myth vs Fact</option>
           <option value="stat">Stat block</option>
           <option value="quote">Quote / testimonial</option>
@@ -784,7 +797,7 @@ const FORMATS = {
   story:    {label:'1080 × 1920 · Story',    w:1080, h:1920, cs:1.35, headTop:150, logo:120, frameTop:380, frameBot:820, footFromBot:760, footWhite:false},
   linkedin: {label:'1200 × 1200 · LinkedIn', w:1200, h:1200, cs:1,    headTop:70,  logo:112, frameTop:238, frameBot:432, footFromBot:138, footWhite:false}
 };
-const PHOTO_MODULES = ['photofull','photosplit','beforeafter'];
+const PHOTO_MODULES = ['photofull','photosplit','beforeafter','meet'];
 
 /* ================= state ================= */
 const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, aspect:1.5});
@@ -1095,6 +1108,15 @@ function moduleHtml(slide, lang, f, u){
         <div class="totvs">${lang==='ar'?'أم':'VS'}</div>
         <div class="totcard b"><div class="totk">${lang==='ar'?'ذاك':'That'}</div><div class="tott">${E(c.fact)}</div></div>
       </div>`;
+  if(m === 'meet'){
+    const mw = Math.round(innerW * 0.42);
+    return `<div class="meet">${eyebrow}
+      <div class="meet-photo${fx}" style="width:${mw}px;height:${mw}px;${phStyle(slide.photos[0], mw, mw)}">${fxov}</div>
+      <h1 class="title">${H(c.title)}</h1>
+      <p class="meet-role">${E(c.attrib)}</p>
+      <p class="body">${H(c.body)}</p>
+    </div>`;
+  }
   if(m === 'testimonial')
     return ic + eyebrow + `<div class="testimonial">
         <div class="stars5">★★★★★</div>
@@ -1330,6 +1352,7 @@ const FIELDS = {
   faq:[['eyebrow','Eyebrow','input'],['title','Question','area'],['body','Answer','area'],['cta','Call to action','input']],
   thisorthat:[['eyebrow','Eyebrow','input'],['title','Question','area'],['myth','This — option A','area'],['fact','That — option B','area'],['cta','Call to action','input']],
   testimonial:[['eyebrow','Eyebrow','input'],['title','Review text','area'],['attrib','Attribution','input'],['cta','Call to action','input']],
+  meet:[['eyebrow','Kicker','input'],['title','Name','input'],['attrib','Role','input'],['body','Short blurb','area'],['cta','Call to action','input']],
   myth:[['eyebrow','Eyebrow','input'],['title','Title','area'],['myth','Myth','area'],['fact','Fact','area'],['cta','Call to action','input']],
   stat:[['eyebrow','Eyebrow','input'],['stat','The figure','input'],['statLabel','Figure label','input'],['body','Body','area'],['cta','Call to action','input']],
   quote:[['eyebrow','Eyebrow','input'],['title','Quote','area'],['attrib','Attribution','input'],['cta','Call to action','input']],
@@ -2168,6 +2191,9 @@ const TEMPLATES = [
         myth:'Tight, narrow shoes that "support" the foot.', fact:'Roomy shoes with a wide, deep toe box.', cta:'Comment your pick.'},
     ar:{eyebrow:'العناية بالقدم', title:'أيّهما *أأمن* للقدم السكرية؟',
         myth:'حذاء ضيّق يُفترض أنه يدعم القدم.', fact:'حذاء واسع بمقدمة عميقة ومريحة.', cta:'شاركنا اختيارك.'} },
+  { label:'Meet your nurse', sub:'Face-to-brand · trust', goal:'promotion', module:'meet',
+    en:{eyebrow:'Meet Your Nurse', title:'Nurse Sarah', attrib:'Registered Nurse · Wound & Diabetic Foot Care', body:'Bringing specialist, compassionate wound care into your home across Beirut.', cta:'Book a home assessment.'},
+    ar:{eyebrow:'تعرّف على ممرّضتك', title:'الممرضة سارة', attrib:'ممرضة مسجّلة · العناية بالجروح والقدم السكرية', body:'رعاية متخصصة ورحيمة للجروح في منزلك في جميع أنحاء بيروت.', cta:'احجز تقييماً منزلياً.'} },
   { label:'Patient review', sub:'Testimonial · social proof', goal:'promotion', module:'testimonial', shareBadge:'save',
     en:{eyebrow:'Patient Review', title:'The nurses came home and made a hard time so much easier.', attrib:'— Family caregiver, Beirut', cta:'Book a home assessment.'},
     ar:{eyebrow:'رأي مريض', title:'جاء الممرّضون إلى المنزل وجعلوا وقتاً صعباً أسهل بكثير.', attrib:'— مقدّم رعاية، بيروت', cta:'احجز تقييماً منزلياً.'} },
