@@ -188,9 +188,9 @@ body.gridview .stage{display:none}
 
 /* Meet the nurse (face-to-brand) */
 .meet{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
-.meet .eyebrow{align-self:center;margin-bottom:calc(28px*var(--u))}
+.meet .eyebrow{align-self:center;margin-bottom:calc(22px*var(--u))}
 .meet-photo{position:relative;border-radius:50%;overflow:hidden;background:#DCE4EC;background-repeat:no-repeat;flex:0 0 auto;
-  box-shadow:0 0 0 calc(8px*var(--u)) rgba(16,147,142,.16), 0 0 0 calc(15px*var(--u)) rgba(16,147,142,.07);margin-bottom:calc(34px*var(--u))}
+  box-shadow:0 0 0 calc(8px*var(--u)) rgba(16,147,142,.16), 0 0 0 calc(15px*var(--u)) rgba(16,147,142,.07);margin-bottom:calc(26px*var(--u))}
 .post.navy .meet-photo{box-shadow:0 0 0 calc(8px*var(--u)) rgba(24,183,176,.22), 0 0 0 calc(15px*var(--u)) rgba(24,183,176,.10)}
 .meet .title{margin:0}
 .meet-role{font-size:calc(30px*var(--u));font-weight:700;color:var(--teal);letter-spacing:.03em;margin:calc(8px*var(--u)) 0 calc(20px*var(--u))}
@@ -1189,7 +1189,8 @@ function moduleHtml(slide, lang, f, u){
         <div class="totcard b"><div class="totk">${lang==='ar'?'ذاك':'That'}</div><div class="tott">${E(c.fact)}</div></div>
       </div>`;
   if(m === 'meet'){
-    const mw = Math.round(innerW * 0.42);
+    /* cap the portrait by the frame height so it fits the short square too */
+    const mw = Math.round(Math.min(innerW * 0.42, f.h * 0.57 - 420 * u));
     return `<div class="meet">${eyebrow}
       <div class="meet-photo${fx}" style="width:${mw}px;height:${mw}px;${phStyle(slide.photos[0], mw, mw)}">${fxov}</div>
       <h1 class="title">${H(c.title)}</h1>
