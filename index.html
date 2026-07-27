@@ -198,6 +198,11 @@ body.gridview .stage{display:none}
 .meet .body{max-width:88%}
 .post.ar .meet-role{font-family:var(--ar-body)}
 
+/* Film-grain overlay */
+.grain{position:absolute;inset:0;pointer-events:none;z-index:40;opacity:.09;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:calc(300px*var(--u)) calc(300px*var(--u))}
+
 /* Mini infographic — labelled bars */
 .bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:calc(28px*var(--u))}
 .bars .bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:calc(11px*var(--u))}
@@ -648,6 +653,7 @@ body.gridview .stage{display:none}
         <option value="send">Send to a friend</option>
         <option value="share">Share this</option>
       </select></div>
+      <label class="chk"><input type="checkbox" id="grainOn"> Film grain — subtle warm texture</label>
       <div id="fields"></div>
       <datalist id="catList">
         <option value="Wound Care Education"></option>
@@ -890,7 +896,7 @@ function ctaSuggest(goal, lang){
   return {cta, reason, stars};
 }
 const state = {
-  fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6, swipeIx:false,
+  fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6, swipeIx:false, grain:false,
   tone:'patient', capLen:'standard', dialect:'msa',
   brand:{
     en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'@curanova.care'},
@@ -1024,6 +1030,11 @@ const ICONS = {
   phone:  {label:'Contact',      svg:'<path d="M4 20l1.4-4.1A8 8 0 1 1 8.6 19.1z"/><path d="M8.6 9.4c0 3.3 2.7 6 6 6"/>'}
 };
 const iconBadge = key => (key && ICONS[key]) ? `<div class="ficon"><svg viewBox="0 0 24 24">${ICONS[key].svg}</svg></div>` : '';
+
+/* Subtle film-grain overlay (studio-wide, optional). Monochrome fractal
+   noise so it warms the flat fill without shifting brand colours. */
+const GRAIN = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
+const grainHtml = () => state.grain ? '<div class="grain"></div>' : '';
 
 /* ================= story stickers ================= */
 /* Mockups of Instagram Story stickers, so a Story design reserves the right
@@ -1189,7 +1200,7 @@ function paint(el, slide, f, lang){
     el.style.width = f.w+'px'; el.style.height = f.h+'px'; el.style.setProperty('--u', u);
     const key = slide.icon || 'heart', icon = (ICONS[key] || ICONS.heart).svg;
     const label = esc((c.title || '').replace(/\*/g,'').trim());
-    el.innerHTML = `<div class="hlcover"><div class="hl-icon"><svg viewBox="0 0 24 24">${icon}</svg></div>${label?`<div class="hl-label">${label}</div>`:''}</div><div class="hl-ring"></div>`;
+    el.innerHTML = `<div class="hlcover"><div class="hl-icon"><svg viewBox="0 0 24 24">${icon}</svg></div>${label?`<div class="hl-label">${label}</div>`:''}</div><div class="hl-ring"></div>${grainHtml()}`;
     return;
   }
   /* Bold PSA: full-bleed brand colour, one oversized statement, minimal brand. */
@@ -1201,7 +1212,7 @@ function paint(el, slide, f, lang){
       ${c.eyebrow?`<div class="psa-kick">${D(esc(c.eyebrow))}</div>`:''}
       <h1 class="title psa-title">${D(hl(c.title))}</h1>
       ${b.c2?`<div class="psa-brand">${esc(b.c2)}</div>`:''}
-    </div>`;
+    </div>${grainHtml()}`;
     autofit(el);
     return;
   }
@@ -1261,6 +1272,7 @@ function paint(el, slide, f, lang){
         <div class="contact"><div class="l1">${esc(b.c1)}</div><div class="l2">${esc(b.c2)}</div></div>
       </div>`}
       <div class="safe"><div class="box m"></div>${safeUi}</div>
+      ${grainHtml()}
     </div>`;
   autofit(el);
 }
@@ -1447,6 +1459,7 @@ function panel(){
   renderStickerFields();
   document.getElementById('shareBadge').value = s.shareBadge || 'none';
   document.getElementById('swipeIx').checked = !!state.swipeIx;
+  document.getElementById('grainOn').checked = !!state.grain;
   renderIcons();
   document.getElementById('consentOk').checked = !!s.consent.ok;
   document.getElementById('consentRef').value = s.consent.ref;
@@ -1541,6 +1554,7 @@ function renderStickerFields(){
 }
 document.getElementById('sticker').addEventListener('change', e => { S().sticker = e.target.value; renderStickerFields(); render(); });
 document.getElementById('shareBadge').addEventListener('change', e => { S().shareBadge = e.target.value; render(); });
+document.getElementById('grainOn').addEventListener('change', e => { state.grain = e.target.checked; if(state.view==='grid') renderGrid(); render(); });
 document.getElementById('stickerFields').addEventListener('input', e => {
   const k = e.target.dataset.sk; if(!k) return;
   if(k === 'emoji') S().stickerEmoji = e.target.value;
@@ -2661,7 +2675,7 @@ function packState(strip){
   });
   return {v:1, fmt:state.fmt, lang:state.lang, style:state.style, texture:state.texture,
           texAlpha:state.texAlpha, view:state.view, tone:state.tone, capLen:state.capLen,
-          dialect:state.dialect, swipeIx:state.swipeIx, active:state.active, brand:state.brand, slides};
+          dialect:state.dialect, swipeIx:state.swipeIx, grain:state.grain, active:state.active, brand:state.brand, slides};
 }
 function applyPack(d){
   if(!d || !d.slides || !d.slides.length) return false;
@@ -2686,6 +2700,7 @@ function applyPack(d){
   if(typeof d.texAlpha === 'number') state.texAlpha = d.texAlpha;
   if(d.view) state.view = d.view;
   if(typeof d.swipeIx === 'boolean') state.swipeIx = d.swipeIx;
+  if(typeof d.grain === 'boolean') state.grain = d.grain;
   state.active = Math.min(Math.max(0, d.active || 0), state.slides.length - 1);
   return true;
 }
