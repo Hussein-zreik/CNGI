@@ -150,11 +150,12 @@ body.gridview .stage{display:none}
 .igsticker.countdown .cdate{font-size:calc(22px*var(--u));color:#8496A6;margin-top:calc(8px*var(--u))}
 .post.ar .igsticker .q,.post.ar .igsticker .opt,.post.ar .igsticker .field{font-family:var(--ar-body)}
 
-/* share / save engagement badge */
-.sharebadge{position:absolute;top:calc(-18px*var(--u));right:0;display:inline-flex;align-items:center;gap:calc(9px*var(--u));
+/* share / save engagement badge — sits in the message flow, clear of the
+   corner wedge and footer swoosh */
+.sharebadge{align-self:flex-start;margin-top:calc(30px*var(--u));display:inline-flex;align-items:center;gap:calc(9px*var(--u));
   background:var(--navy);color:#fff;border-radius:100px;padding:calc(10px*var(--u)) calc(20px*var(--u));font-size:calc(22px*var(--u));font-weight:700;
-  box-shadow:0 calc(8px*var(--u)) calc(22px*var(--u)) rgba(15,42,72,.28)}
-.post.rtl .sharebadge{right:auto;left:0}
+  box-shadow:0 calc(8px*var(--u)) calc(22px*var(--u)) rgba(15,42,72,.20)}
+.post.rtl .sharebadge{align-self:flex-end}
 .sharebadge .sbic{display:flex}
 .sharebadge .sbic svg{width:calc(22px*var(--u));height:calc(22px*var(--u));stroke:var(--teal-lt);stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .post.navy .sharebadge{background:#fff;color:var(--navy)} .post.navy .sharebadge .sbic svg{stroke:var(--teal)}
@@ -185,8 +186,8 @@ body.gridview .stage{display:none}
 .post.navy .cover .cover-sub{color:rgba(255,255,255,.72)}
 .post.ar .cover .cover-title{line-height:1.28}
 
-/* Swipe index (carousel affordance) */
-.swipeix{position:absolute;top:calc(-12px*var(--u));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:calc(9px*var(--u))}
+/* Swipe index (carousel affordance) — sits at the top of the message flow */
+.swipeix{align-self:center;margin-bottom:calc(26px*var(--u));display:flex;align-items:center;gap:calc(9px*var(--u))}
 .swipeix .d{width:calc(12px*var(--u));height:calc(12px*var(--u));border-radius:50%;background:rgba(24,60,100,.22)}
 .swipeix .d.on{background:var(--teal);width:calc(30px*var(--u));border-radius:100px}
 .swipeix .sw{margin-left:calc(6px*var(--u));font-size:calc(19px*var(--u));font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal)}
@@ -1145,8 +1146,7 @@ function paint(el, slide, f, lang){
       </div>
       <div class="frame${photoFull?' bare':''}" data-frame>
         <span class="bracket tl"></span><span class="bracket br"></span>
-        <div data-fit style="display:flex;flex-direction:column;justify-content:center">${moduleHtml(slide, lang, f, u)}${stickerHtml(slide, lang)}${waHtml}</div>
-        ${shareBadgeHtml(slide, lang)}${swipeHtml}
+        <div data-fit style="display:flex;flex-direction:column;justify-content:center">${swipeHtml}${moduleHtml(slide, lang, f, u)}${stickerHtml(slide, lang)}${shareBadgeHtml(slide, lang)}${waHtml}</div>
       </div>
       ${disc}
       <div class="action">
