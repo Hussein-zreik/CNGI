@@ -198,6 +198,17 @@ body.gridview .stage{display:none}
 .meet .body{max-width:88%}
 .post.ar .meet-role{font-family:var(--ar-body)}
 
+/* Annotation marks */
+.annolayer{position:absolute;inset:0;z-index:36;pointer-events:none}
+.anno{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:grab;touch-action:none}
+.anno:active{cursor:grabbing}
+.anno-circle{border:calc(8px*var(--u)) solid var(--teal);border-radius:50%}
+.anno-circle.red{border-color:#E4572E}
+.anno-hl{background:rgba(16,147,142,.30);border-radius:calc(10px*var(--u))}
+.anno-hl.red{background:rgba(228,87,46,.28)}
+.anno-arrow svg{width:100%;height:100%;stroke:var(--teal);stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 calc(2px*var(--u)) calc(4px*var(--u)) rgba(0,0,0,.25))}
+.anno-arrow.red svg{stroke:#E4572E}
+
 /* Film-grain overlay */
 .grain{position:absolute;inset:0;pointer-events:none;z-index:40;opacity:.09;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -725,6 +736,17 @@ body.gridview .stage{display:none}
       </div>
     </div>
 
+    <div class="sec">
+      <h3>Annotations</h3>
+      <div class="two"><button class="btn ghost" id="annoCircle">+ Circle</button><button class="btn ghost" id="annoArrow">+ Arrow</button></div>
+      <div class="two"><button class="btn ghost" id="annoHl">+ Highlight</button><button class="btn ghost" id="annoDel">Remove last</button></div>
+      <div class="two">
+        <div class="fld"><label for="annoColorSel">Colour</label><select id="annoColorSel"><option value="teal">Teal</option><option value="red">Red</option></select></div>
+        <div class="fld"><label for="annoSize">Size</label><input type="range" id="annoSize" min="90" max="520" value="220"></div>
+      </div>
+      <p class="note">Add a mark, then <b>drag it on the preview</b> to position it. Size/colour affect the last mark added. Great for pointing at before/after photos.</p>
+    </div>
+
     </div><!-- /design -->
 
     <div class="tabpane" data-pane="brand" hidden>
@@ -837,7 +859,7 @@ const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, asp
 const blankSlide = () => ({
   module:'standard', theme:'light', comp:'swoosh', swoosh:'a', disclaimer:false,
   goal:'education', waOn:false, waNum:'+961 79 093 599', icon:'', photoFx:'none',
-  sticker:'none', stickerEmoji:'😍', countDate:'', shareBadge:'none', ctaOn:true, footerOn:true,
+  sticker:'none', stickerEmoji:'😍', countDate:'', shareBadge:'none', ctaOn:true, footerOn:true, annos:[],
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
@@ -1079,6 +1101,18 @@ function shareBadgeHtml(slide, lang){
   const m = SHARE_BADGES[slide.shareBadge]; if(!m) return '';
   return `<div class="sharebadge"><span class="sbic"><svg viewBox="0 0 24 24">${m.ic}</svg></span><span>${esc(lang==='ar'?m.ar:m.en)}</span></div>`;
 }
+/* Annotation marks (circle / arrow / highlighter) — draggable on the preview,
+   great for pointing at before/after photos. */
+function annoHtml(slide){
+  const a = slide.annos || []; if(!a.length) return '';
+  return `<div class="annolayer">` + a.map((m,i) => {
+    const c = m.color === 'red' ? ' red' : '', w = m.s || 220,
+          pos = `left:${m.x}%;top:${m.y}%;width:calc(${w}px*var(--u))`;
+    if(m.type === 'hl')     return `<div class="anno anno-hl${c}" data-i="${i}" style="${pos};height:calc(${Math.round(w*0.4)}px*var(--u))"></div>`;
+    if(m.type === 'arrow')  return `<div class="anno anno-arrow${c}" data-i="${i}" style="${pos};height:calc(${w}px*var(--u))"><svg viewBox="0 0 24 24"><path d="M20 20 L6 6 M6 15 L6 6 L15 6"/></svg></div>`;
+    return `<div class="anno anno-circle${c}" data-i="${i}" style="${pos};height:calc(${w}px*var(--u))"></div>`;
+  }).join('') + `</div>`;
+}
 
 /* ================= canvas painting ================= */
 function moduleHtml(slide, lang, f, u){
@@ -1272,7 +1306,7 @@ function paint(el, slide, f, lang){
         <div class="contact"><div class="l1">${esc(b.c1)}</div><div class="l2">${esc(b.c2)}</div></div>
       </div>`}
       <div class="safe"><div class="box m"></div>${safeUi}</div>
-      ${grainHtml()}
+      ${annoHtml(slide)}${grainHtml()}
     </div>`;
   autofit(el);
 }
@@ -1555,6 +1589,36 @@ function renderStickerFields(){
 document.getElementById('sticker').addEventListener('change', e => { S().sticker = e.target.value; renderStickerFields(); render(); });
 document.getElementById('shareBadge').addEventListener('change', e => { S().shareBadge = e.target.value; render(); });
 document.getElementById('grainOn').addEventListener('change', e => { state.grain = e.target.checked; if(state.view==='grid') renderGrid(); render(); });
+/* ---- annotation marks ---- */
+let annoColor = 'teal', annoSel = -1;
+function addAnno(type){
+  const s = S(); s.annos = s.annos || [];
+  s.annos.push({type, x:50, y:48, s:+document.getElementById('annoSize').value, color:annoColor});
+  annoSel = s.annos.length - 1; render();
+}
+document.getElementById('annoCircle').onclick = () => addAnno('circle');
+document.getElementById('annoArrow').onclick  = () => addAnno('arrow');
+document.getElementById('annoHl').onclick     = () => addAnno('hl');
+document.getElementById('annoDel').onclick    = () => { const s = S(); if(s.annos && s.annos.length){ s.annos.pop(); annoSel = s.annos.length - 1; render(); } };
+document.getElementById('annoSize').addEventListener('input', e => { const s = S(); if(s.annos && s.annos[annoSel]){ s.annos[annoSel].s = +e.target.value; render(); } });
+document.getElementById('annoColorSel').addEventListener('change', e => { annoColor = e.target.value; const s = S(); if(s.annos && s.annos[annoSel]){ s.annos[annoSel].color = annoColor; render(); } });
+/* drag a mark on the preview (works through the post's transform scale) */
+post.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.anno'); if(!el) return;
+  e.preventDefault();
+  const i = +el.dataset.i; annoSel = i;
+  const rect = post.getBoundingClientRect();
+  const move = ev => {
+    const x = Math.max(0, Math.min(100, (ev.clientX - rect.left) / rect.width * 100));
+    const y = Math.max(0, Math.min(100, (ev.clientY - rect.top) / rect.height * 100));
+    el.style.left = x + '%'; el.style.top = y + '%'; el._x = x; el._y = y;
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
+    const s = S(); if(s.annos && s.annos[i] && el._x != null){ s.annos[i].x = el._x; s.annos[i].y = el._y; persist(); }
+  };
+  document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
+});
 document.getElementById('stickerFields').addEventListener('input', e => {
   const k = e.target.dataset.sk; if(!k) return;
   if(k === 'emoji') S().stickerEmoji = e.target.value;
