@@ -176,6 +176,23 @@ body.gridview .stage{display:none}
 .testimonial .title{font-size:calc(46px*var(--hfit,1)*var(--u))}
 .post.navy .testimonial .title{color:#fff}
 
+/* Hook cover (thumbnail-optimised) */
+.cover{display:flex;flex-direction:column;align-items:center;text-align:center;width:100%}
+.cover .eyebrow{align-self:center}
+.cover .ficon{align-self:center}
+.cover .cover-title{font-size:calc(104px*var(--hfit,1)*var(--u));line-height:1.06;letter-spacing:-1px}
+.cover .cover-sub{margin-top:calc(26px*var(--u));font-size:calc(34px*var(--u));color:var(--slate);max-width:88%}
+.post.navy .cover .cover-sub{color:rgba(255,255,255,.72)}
+.post.ar .cover .cover-title{line-height:1.28}
+
+/* Swipe index (carousel affordance) */
+.swipeix{position:absolute;top:calc(-12px*var(--u));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:calc(9px*var(--u))}
+.swipeix .d{width:calc(12px*var(--u));height:calc(12px*var(--u));border-radius:50%;background:rgba(24,60,100,.22)}
+.swipeix .d.on{background:var(--teal);width:calc(30px*var(--u));border-radius:100px}
+.swipeix .sw{margin-left:calc(6px*var(--u));font-size:calc(19px*var(--u));font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal)}
+.post.navy .swipeix .d{background:rgba(255,255,255,.28)} .post.navy .swipeix .d.on{background:var(--teal-lt)} .post.navy .swipeix .sw{color:var(--teal-lt)}
+.post.ar .swipeix .sw{font-family:var(--ar-body)}
+
 /* photo treatments */
 .fxov{position:absolute;inset:0;pointer-events:none;z-index:1;mix-blend-mode:multiply}
 .fx-teal>.fxov{background:var(--teal)} .fx-navy>.fxov{background:var(--navy)}
@@ -462,6 +479,14 @@ body.gridview .stage{display:none}
       </div>
       <div id="carMeter" class="carmeter"></div>
       <p class="note">Turns the first topic line into a hook → points → CTA sequence sharing this post's theme, goal and brand. Replaces the current slides.</p>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="swipeIx"> Show swipe indicator (dots) on every slide</label>
+      <div class="two" style="margin-top:6px">
+        <div class="fld"><label for="panoN">Panorama</label><select id="panoN">
+          <option value="2">2 slides</option><option value="3" selected>3 slides</option>
+        </select></div>
+        <div class="fld"><label>&nbsp;</label><button class="btn ghost" id="panoBuild" style="margin:0;padding:9px 0">Split a photo</button></div>
+      </div>
+      <p class="note">Panorama splits the current slide's photo into a seamless multi-slide sweep — best with a wide landscape image. Add the photo in Design → Photo first.</p>
     </div>
 
     <div class="sec">
@@ -514,6 +539,7 @@ body.gridview .stage{display:none}
       <div class="two">
         <div class="fld"><label for="module">Module</label><select id="module">
           <option value="standard">Title + body</option>
+          <option value="cover">Hook cover</option>
           <option value="steps">Numbered steps</option>
           <option value="checklist">Checklist</option>
           <option value="compare">Do's &amp; Don'ts</option>
@@ -798,7 +824,7 @@ function ctaSuggest(goal, lang){
   return {cta, reason, stars};
 }
 const state = {
-  fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6,
+  fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6, swipeIx:false,
   tone:'patient', capLen:'standard', dialect:'msa',
   brand:{
     en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'@curanova.care'},
@@ -995,8 +1021,14 @@ function moduleHtml(slide, lang, f, u){
   const innerH = (f.h - f.frameTop*u - f.frameBot*u) - 2*padY;
   const bar = slide.scaleBar ? `<div class="scalebar"><i></i><span>${lang==='ar'?'١ سم':'1 cm'}</span></div>` : '';
 
+  if(m === 'cover'){
+    const sub = c.body ? `<p class="body cover-sub">${H(c.body)}</p>` : '';
+    return `<div class="cover">${ic}${eyebrow}<h1 class="title cover-title">${H(c.title)}</h1>${sub}</div>`;
+  }
   if(m === 'photofull'){
-    return ic + eyebrow + `<h1 class="title">${H(c.title)}</h1><div class="rule"></div><p class="body">${H(c.body)}</p>`;
+    const t = c.title ? `<h1 class="title">${H(c.title)}</h1><div class="rule"></div>` : '';
+    const bd = c.body ? `<p class="body">${H(c.body)}</p>` : '';
+    return ic + eyebrow + t + bd;
   }
   if(m === 'photosplit'){
     /* Photo on the right as a ringed panel; text column on the left. Sized/centred
@@ -1096,6 +1128,10 @@ function paint(el, slide, f, lang){
   const waHtml = (slide.waOn && waNum)
     ? `<div class="wapill"><span class="waic"><svg viewBox="0 0 24 24"><path d="M4 20l1.4-4.1A8 8 0 1 1 8.6 19.1z"/><path d="M8.6 9.4c0 3.3 2.7 6 6 6"/></svg></span><span class="watxt">${esc(waTxt)}</span></div>`
     : '';
+  const total = state.slides.length, ixHere = Math.max(0, state.slides.indexOf(slide));
+  const swipeHtml = (state.swipeIx && total > 1)
+    ? `<div class="swipeix">${Array.from({length:total}, (_,i) => `<span class="d${i===ixHere?' on':''}"></span>`).join('')}${ixHere < total-1 ? `<span class="sw">${lang==='ar'?'اسحب ←':'Swipe →'}</span>` : ''}</div>`
+    : '';
 
   el.innerHTML = bgSvg(f.w, f.h, navy, f.cs, slide.comp, slide.swoosh) + photoLayer + `
     <div class="layer">
@@ -1110,7 +1146,7 @@ function paint(el, slide, f, lang){
       <div class="frame${photoFull?' bare':''}" data-frame>
         <span class="bracket tl"></span><span class="bracket br"></span>
         <div data-fit style="display:flex;flex-direction:column;justify-content:center">${moduleHtml(slide, lang, f, u)}${stickerHtml(slide, lang)}${waHtml}</div>
-        ${shareBadgeHtml(slide, lang)}
+        ${shareBadgeHtml(slide, lang)}${swipeHtml}
       </div>
       ${disc}
       <div class="action">
@@ -1254,6 +1290,7 @@ document.getElementById('railnav').addEventListener('click', e => {
 /* ================= field panel ================= */
 const FIELDS = {
   standard:[['eyebrow','Eyebrow','input'],['title','Title','area'],['body','Body','area'],['cta','Call to action','input']],
+  cover:[['eyebrow','Kicker','input'],['title','Hook headline','area'],['body','Subtitle (optional)','area'],['cta','Call to action','input']],
   steps:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Steps (one per line)','list'],['cta','Call to action','input']],
   checklist:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Items (one per line)','list'],['cta','Call to action','input']],
   compare:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items',"Do's (one per line)",'list'],['items2',"Don'ts (one per line)",'list'],['cta','Call to action','input']],
@@ -1302,6 +1339,7 @@ function panel(){
   document.getElementById('sticker').value = s.sticker || 'none';
   renderStickerFields();
   document.getElementById('shareBadge').value = s.shareBadge || 'none';
+  document.getElementById('swipeIx').checked = !!state.swipeIx;
   renderIcons();
   document.getElementById('consentOk').checked = !!s.consent.ok;
   document.getElementById('consentRef').value = s.consent.ref;
@@ -2050,6 +2088,9 @@ const TEMPLATES = [
     ar:{eyebrow:'نصيحة للعناية بالجروح', title:'هل تفحص قدميك *يومياً*؟',
         body:'فحص يومي من دقيقتين يكشف المشاكل مبكراً.', cta:'اعرف المزيد.',
         stickerQ:'هل تفحص قدميك كل يوم؟', stickerA:'كل يوم', stickerB:'ليس بعد'} },
+  { label:'Hook cover', sub:'Cover · big bold thumbnail', goal:'education', module:'cover',
+    en:{eyebrow:'Wound Care Education', title:'*3* Signs A Wound Is Infected', body:'Swipe for the warning signs every diabetic should know.', cta:'Swipe to learn more →'},
+    ar:{eyebrow:'نصيحة للعناية بالجروح', title:'*٣* علامات على التهاب الجرح', body:'اسحب لتعرف العلامات التحذيرية التي يجب أن يعرفها كل مريض سكري.', cta:'اسحب لمعرفة المزيد ←'} },
   { label:'This or That', sub:'This or That · comment engagement', goal:'education', module:'thisorthat', shareBadge:'send',
     en:{eyebrow:'Foot Care', title:'Which Is *Safer* For Diabetic Feet?',
         myth:'Tight, narrow shoes that "support" the foot.', fact:'Roomy shoes with a wide, deep toe box.', cta:'Comment your pick.'},
@@ -2269,6 +2310,25 @@ function buildCarousel(n){
   note('Built a ' + n + '-slide carousel from “' + (topic || 'your topic') + '”. Fill in each point and verify every claim.');
 }
 document.getElementById('carBuild').onclick = () => buildCarousel(+document.getElementById('carN').value);
+/* Swipe indicator (studio-wide) */
+document.getElementById('swipeIx').addEventListener('change', e => { state.swipeIx = e.target.checked; if(state.view==='grid') renderGrid(); render(); });
+/* Panorama: split the current slide's photo into a seamless multi-slide sweep. */
+function buildPanorama(n){
+  const src = S().photos[0];
+  if(!(src.baked || src.raw)) return note('Add a photo to the current slide first (Design → Photo), then build the panorama.');
+  const base = S(), theme = base.theme, comp = base.comp, goal = base.goal;
+  const slides = [];
+  for(let i=0;i<n;i++){
+    const s = blankSlide(); s.theme = theme; s.comp = comp; s.goal = goal; s.module = 'photofull';
+    s.photos[0] = Object.assign(newPhoto(), {raw:src.raw, baked:src.baked, aspect:src.aspect, zoom:100, px: Math.round(i/(n-1)*100), py:50});
+    if(i === 0){ ['en','ar'].forEach(L => { s[L].eyebrow = base[L].eyebrow; s[L].title = base[L].title; s[L].body = base[L].body; s[L].cta = base[L].cta; }); }
+    else { ['en','ar'].forEach(L => { s[L].eyebrow = ''; s[L].title = ''; s[L].body = ''; }); }
+    slides.push(s);
+  }
+  state.slides = slides; state.active = 0; toolbars(); panel(); render();
+  note('Split the photo into a ' + n + '-slide panorama. It reads best when posted as a carousel with a wide landscape image.');
+}
+document.getElementById('panoBuild').onclick = () => buildPanorama(+document.getElementById('panoN').value);
 
 /* ================= export ================= */
 function saveAs(url,name){ const a=document.createElement('a'); a.href=url; a.download=name; a.click(); }
@@ -2438,7 +2498,7 @@ function packState(strip){
   });
   return {v:1, fmt:state.fmt, lang:state.lang, style:state.style, texture:state.texture,
           texAlpha:state.texAlpha, view:state.view, tone:state.tone, capLen:state.capLen,
-          dialect:state.dialect, active:state.active, brand:state.brand, slides};
+          dialect:state.dialect, swipeIx:state.swipeIx, active:state.active, brand:state.brand, slides};
 }
 function applyPack(d){
   if(!d || !d.slides || !d.slides.length) return false;
@@ -2462,6 +2522,7 @@ function applyPack(d){
   if(d.dialect) state.dialect = d.dialect;
   if(typeof d.texAlpha === 'number') state.texAlpha = d.texAlpha;
   if(d.view) state.view = d.view;
+  if(typeof d.swipeIx === 'boolean') state.swipeIx = d.swipeIx;
   state.active = Math.min(Math.max(0, d.active || 0), state.slides.length - 1);
   return true;
 }
