@@ -681,6 +681,7 @@ body.gridview .stage{display:none}
 
     <div class="sec">
       <h3>Brand footer</h3>
+      <label class="chk"><input type="checkbox" id="footerOn" checked> Show footer (contact lines) on the post</label>
       <div class="fld"><label for="bTag">Service line (header)</label><input id="bTag"></div>
       <div class="fld"><label for="bC1">WhatsApp line</label><input id="bC1"></div>
       <div class="fld"><label for="bC2">Social handle</label><input id="bC2"></div>
@@ -767,7 +768,7 @@ const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, asp
 const blankSlide = () => ({
   module:'standard', theme:'light', comp:'swoosh', swoosh:'a', disclaimer:false,
   goal:'education', waOn:false, waNum:'+961 79 093 599', icon:'', photoFx:'none',
-  sticker:'none', stickerEmoji:'😍', countDate:'', shareBadge:'none', ctaOn:true,
+  sticker:'none', stickerEmoji:'😍', countDate:'', shareBadge:'none', ctaOn:true, footerOn:true,
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
@@ -1153,9 +1154,9 @@ function paint(el, slide, f, lang){
       </div>
       ${disc}
       ${actionHtml}
-      <div class="footer">
+      ${slide.footerOn === false ? '' : `<div class="footer">
         <div class="contact"><div class="l1">${esc(b.c1)}</div><div class="l2">${esc(b.c2)}</div></div>
-      </div>
+      </div>`}
       <div class="safe"><div class="box m"></div>${safeUi}</div>
     </div>`;
   autofit(el);
@@ -1323,6 +1324,7 @@ function panel(){
     el.value = [b.tag,b.c1,b.c2][i];
     el.parentElement.classList.toggle('ar', ar);
   });
+  document.getElementById('footerOn').checked = s.footerOn !== false;
   document.getElementById('capOut').textContent = C().caption || 'Generate copy to fill this.';
   document.getElementById('capOut').style.direction = ar ? 'rtl' : 'ltr';
   renderTags();
@@ -1376,6 +1378,7 @@ document.getElementById('varyBtn').onclick = () => {
 ['bTag','bC1','bC2'].forEach((id,i)=> document.getElementById(id).addEventListener('input', e => {
   B()[['tag','c1','c2'][i]] = e.target.value; render();
 }));
+document.getElementById('footerOn').addEventListener('change', e => { S().footerOn = e.target.checked; render(); });
 document.getElementById('source').addEventListener('input', e => { S().meta.source = e.target.value; safety(); });
 document.getElementById('discOn').addEventListener('change', e => { S().disclaimer = e.target.checked; render(); });
 document.getElementById('waOn').addEventListener('change', e => { S().waOn = e.target.checked; document.getElementById('waWrap').style.display = e.target.checked ? '' : 'none'; render(); });
