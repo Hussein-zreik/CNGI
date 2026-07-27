@@ -198,6 +198,19 @@ body.gridview .stage{display:none}
 .meet .body{max-width:88%}
 .post.ar .meet-role{font-family:var(--ar-body)}
 
+/* Bold PSA (full-bleed statement) */
+.post.psapost{background:var(--teal)}
+.post.psapost.navy{background:var(--navy)}
+.psa{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;padding:calc(96px*var(--u))}
+.psa-kick{align-self:flex-start;font-size:calc(26px*var(--u));font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.85);
+  border:calc(2px*var(--u)) solid rgba(255,255,255,.5);padding:calc(9px*var(--u)) calc(22px*var(--u));border-radius:100px;margin-bottom:calc(38px*var(--u))}
+.psa-title.title{font-family:var(--sans);font-weight:800;font-size:calc(118px*var(--hfit,1)*var(--u));line-height:1.03;letter-spacing:-1.5px;color:#fff}
+.psa-title.title em{font-style:normal;color:var(--navy)}
+.post.psapost.navy .psa-title.title em{color:var(--teal-lt)}
+.psa-brand{position:absolute;left:calc(96px*var(--u));bottom:calc(80px*var(--u));font-size:calc(27px*var(--u));font-weight:700;color:rgba(255,255,255,.9)}
+.post.psapost.rtl .psa-brand{left:auto;right:calc(96px*var(--u))}
+.post.psapost.ar .psa-title.title{font-family:var(--ar-body);letter-spacing:0;line-height:1.24}
+
 /* Story-highlight cover */
 .post.hlpost{background:#fff}
 .post.hlpost.navy{background:var(--navy)}
@@ -576,6 +589,7 @@ body.gridview .stage{display:none}
           <option value="standard">Title + body</option>
           <option value="cover">Hook cover</option>
           <option value="highlight">Highlight cover</option>
+          <option value="psa">Bold PSA</option>
           <option value="steps">Numbered steps</option>
           <option value="checklist">Checklist</option>
           <option value="compare">Do's &amp; Don'ts</option>
@@ -1157,6 +1171,19 @@ function paint(el, slide, f, lang){
     el.innerHTML = `<div class="hlcover"><div class="hl-icon"><svg viewBox="0 0 24 24">${icon}</svg></div>${label?`<div class="hl-label">${label}</div>`:''}</div><div class="hl-ring"></div>`;
     return;
   }
+  /* Bold PSA: full-bleed brand colour, one oversized statement, minimal brand. */
+  if(slide.module === 'psa'){
+    el.className = 'post psapost' + (navy?' navy':'') + (lang==='ar'?' ar rtl':'') + (state.safe?' showsafe':'');
+    el.style.width = f.w+'px'; el.style.height = f.h+'px'; el.style.setProperty('--u', u); el.style.setProperty('--fit', 1);
+    const D = s => lang==='ar' ? String(s).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]) : String(s);
+    el.innerHTML = `<div class="psa">
+      ${c.eyebrow?`<div class="psa-kick">${D(esc(c.eyebrow))}</div>`:''}
+      <h1 class="title psa-title">${D(hl(c.title))}</h1>
+      ${b.c2?`<div class="psa-brand">${esc(b.c2)}</div>`:''}
+    </div>`;
+    autofit(el);
+    return;
+  }
   const photoFull = slide.module === 'photofull';
   const footWhite = (f.footWhite || slide.comp === 'watermark') && !photoFull;
   const footdark = photoFull ? false : (!!footWhite !== navy);
@@ -1346,6 +1373,7 @@ const FIELDS = {
   standard:[['eyebrow','Eyebrow','input'],['title','Title','area'],['body','Body','area'],['cta','Call to action','input']],
   cover:[['eyebrow','Kicker','input'],['title','Hook headline','area'],['body','Subtitle (optional)','area'],['cta','Call to action','input']],
   highlight:[['title','Cover label','input']],
+  psa:[['eyebrow','Kicker','input'],['title','Statement','area']],
   steps:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Steps (one per line)','list'],['cta','Call to action','input']],
   checklist:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items','Items (one per line)','list'],['cta','Call to action','input']],
   compare:[['eyebrow','Eyebrow','input'],['title','Title','area'],['items',"Do's (one per line)",'list'],['items2',"Don'ts (one per line)",'list'],['cta','Call to action','input']],
@@ -2244,6 +2272,9 @@ const TEMPLATES = [
     ar:{eyebrow:'فعالية CuraNova', title:'العد التنازلي لـ *ورشتنا*',
         body:'احجز التاريخ — جلسة عملية قصيرة للمرضى ومقدّمي الرعاية.', cta:'احجز مكانك.',
         stickerQ:'ورشة القدم السكرية'} },
+  { label:'Bold PSA', sub:'PSA · full-bleed statement', goal:'awareness', module:'psa', theme:'navy',
+    en:{eyebrow:'Public Health', title:'Check your feet *every day*.'},
+    ar:{eyebrow:'صحة عامة', title:'افحص قدميك *كل يوم*.'} },
   { label:'Spread the word', sub:'Standard · shareable message', goal:'awareness', module:'standard',
     en:{eyebrow:'Patient Safety', title:'Help Us Spread *Foot-Care* Awareness',
         body:'A small share could help someone catch a problem early. Pass it on.', cta:'Share to raise awareness.'},
