@@ -698,7 +698,8 @@ body.gridview .stage{display:none}
         <button class="btn ghost" id="kitSave">Save current as kit…</button>
         <button class="btn ghost" id="kitDel">Delete</button>
       </div>
-      <p class="note">A kit stores your footer lines, WhatsApp number, default theme, post goal and voice — save your look once, then apply it to keep every post on-brand. Kits live in this browser.</p>
+      <p class="note" id="kitStat" style="min-height:14px"></p>
+      <p class="note"><b>Save current as kit…</b> snapshots your current footer lines, WhatsApp number, theme, goal and voice. <b>Apply</b> loads that snapshot back onto the post (and turns the footer on). Editing the footer fields does not change a saved kit — re-save with the same name to update it. Kits live in this browser.</p>
     </div>
     </div><!-- /brand -->
 
@@ -758,7 +759,7 @@ const MARK_WHITE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAbYAAAG4CAYAAA
 const FORMATS = {
   square:   {label:'1080 × 1080 · Feed',     w:1080, h:1080, cs:1,    headTop:70,  logo:112, frameTop:238, frameBot:432, footFromBot:138, footWhite:false},
   portrait: {label:'1080 × 1350 · Portrait', w:1080, h:1350, cs:1,    headTop:70,  logo:112, frameTop:238, frameBot:432, footFromBot:138, footWhite:false},
-  story:    {label:'1080 × 1920 · Story',    w:1080, h:1920, cs:1.35, headTop:150, logo:120, frameTop:380, frameBot:820, footFromBot:760, footWhite:true},
+  story:    {label:'1080 × 1920 · Story',    w:1080, h:1920, cs:1.35, headTop:150, logo:120, frameTop:380, frameBot:820, footFromBot:760, footWhite:false},
   linkedin: {label:'1200 × 1200 · LinkedIn', w:1200, h:1200, cs:1,    headTop:70,  logo:112, frameTop:238, frameBot:432, footFromBot:138, footWhite:false}
 };
 const PHOTO_MODULES = ['photofull','photosplit','beforeafter'];
@@ -2225,6 +2226,7 @@ function saveKits(list){ try { localStorage.setItem(KITS_KEY, JSON.stringify(lis
 function kitFromState(name){
   return { name, brand: JSON.parse(JSON.stringify(state.brand)),
     theme: S().theme, goal: S().goal || 'education', waOn: !!S().waOn, waNum: S().waNum || '',
+    footerOn: S().footerOn !== false, ctaOn: S().ctaOn !== false,
     tone: state.tone, dialect: state.dialect };
 }
 function renderKits(sel){
@@ -2243,10 +2245,15 @@ function applyKit(k, all){
     if(k.theme) s.theme = k.theme;
     if(k.goal) s.goal = k.goal;
     s.waOn = !!k.waOn; if(k.waNum) s.waNum = k.waNum;
+    s.footerOn = k.footerOn !== false;              // ensure the footer shows (legacy kits -> on)
+    if(typeof k.ctaOn === 'boolean') s.ctaOn = k.ctaOn;
   });
   syncTone(); toolbars(); panel(); render();
+  const handle = (k.brand && k.brand[state.lang] && k.brand[state.lang].c2) || '';
+  kitStat('Applied “' + k.name + '”' + (all ? ' to all posts' : ' to this post') + (handle ? ' · footer ' + handle : '') + '.');
   note('Applied brand kit “' + k.name + '”' + (all ? ' to all posts.' : ' to this post.'));
 }
+function kitStat(msg){ const el = document.getElementById('kitStat'); if(el) el.textContent = msg; }
 (function initKits(){
   let list = loadKits();
   if(!list.length){ list = [kitFromState('CuraNova default')]; saveKits(list); }
