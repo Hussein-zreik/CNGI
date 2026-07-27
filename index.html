@@ -520,6 +520,7 @@ body.gridview .stage{display:none}
 
     <div class="sec">
       <h3>Smart CTA</h3>
+      <label class="chk"><input type="checkbox" id="ctaOn" checked> Show call-to-action on the post</label>
       <div class="fld"><label for="goal">Post goal</label><select id="goal">
         <option value="education">Education</option>
         <option value="promotion">Promotion</option>
@@ -766,7 +767,7 @@ const newPhoto = () => ({raw:'', baked:'', boxes:[], zoom:100, px:50, py:50, asp
 const blankSlide = () => ({
   module:'standard', theme:'light', comp:'swoosh', swoosh:'a', disclaimer:false,
   goal:'education', waOn:false, waNum:'+961 79 093 599', icon:'', photoFx:'none',
-  sticker:'none', stickerEmoji:'😍', countDate:'', shareBadge:'none',
+  sticker:'none', stickerEmoji:'😍', countDate:'', shareBadge:'none', ctaOn:true,
   photos:[newPhoto(), newPhoto()], scaleBar:false,
   consent:{ok:false, ref:'', date:''},
   meta:{date:'', status:'draft', source:''},
@@ -1133,6 +1134,8 @@ function paint(el, slide, f, lang){
   const swipeHtml = (state.swipeIx && total > 1)
     ? `<div class="swipeix">${Array.from({length:total}, (_,i) => `<span class="d${i===ixHere?' on':''}"></span>`).join('')}${ixHere < total-1 ? `<span class="sw">${lang==='ar'?'اسحب ←':'Swipe →'}</span>` : ''}</div>`
     : '';
+  const actionHtml = slide.ctaOn === false ? ''
+    : `<div class="action"><div class="cta"><span class="txt">${esc(c.cta)}</span><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span></div></div>`;
 
   el.innerHTML = bgSvg(f.w, f.h, navy, f.cs, slide.comp, slide.swoosh) + photoLayer + `
     <div class="layer">
@@ -1149,12 +1152,7 @@ function paint(el, slide, f, lang){
         <div data-fit style="display:flex;flex-direction:column;justify-content:center">${swipeHtml}${moduleHtml(slide, lang, f, u)}${stickerHtml(slide, lang)}${shareBadgeHtml(slide, lang)}${waHtml}</div>
       </div>
       ${disc}
-      <div class="action">
-        <div class="cta">
-          <span class="txt">${esc(c.cta)}</span>
-          <span class="ic"><svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span>
-        </div>
-      </div>
+      ${actionHtml}
       <div class="footer">
         <div class="contact"><div class="l1">${esc(b.c1)}</div><div class="l2">${esc(b.c2)}</div></div>
       </div>
@@ -1387,6 +1385,7 @@ function ctaGen(){
   const goalEl = document.getElementById('goal'); if(!goalEl) return;
   const s = S(), goal = s.goal || 'education', g = GOALS[goal] || GOALS.education;
   goalEl.value = goal;
+  document.getElementById('ctaOn').checked = s.ctaOn !== false;
   const sug = ctaSuggest(goal, state.lang);
   const stars = '★'.repeat(sug.stars) + '☆'.repeat(5 - sug.stars);
   document.getElementById('ctaSuggest').innerHTML =
@@ -1440,6 +1439,7 @@ document.getElementById('stickerFields').addEventListener('input', e => {
   render();
 });
 document.getElementById('goal').addEventListener('change', e => { S().goal = e.target.value; ctaGen(); render(); });
+document.getElementById('ctaOn').addEventListener('change', e => { S().ctaOn = e.target.checked; render(); });
 document.getElementById('ctaSuggest').addEventListener('click', e => { if(e.target.closest('#ctaApply')) setCta(ctaSuggest(S().goal||'education', state.lang).cta); });
 document.getElementById('ctaChips').addEventListener('click', e => { const b = e.target.closest('button'); if(b && b.dataset.cta != null) setCta(b.dataset.cta); });
 document.getElementById('slDate').addEventListener('change', e => { S().meta.date = e.target.value; });
