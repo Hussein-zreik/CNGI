@@ -840,7 +840,37 @@ body.gridview .stage{display:none}
       <div class="fld"><label for="projName">Project name</label><input id="projName" type="text" placeholder="e.g. Diabetic foot campaign" maxlength="60"></div>
       <div class="two"><button class="btn dark" id="projSave">Save project</button><button class="btn ghost" id="projNew">New blank project</button></div>
       <div id="projList" class="verlist"></div>
-      <p class="note">Projects live only in this browser on this device. Use <b>Save .json</b> above for a portable backup you can move between devices.</p>
+      <p class="note">Projects save in this browser by default. Turn on <b>Cloud sync</b> below to share the same library across devices and with your team.</p>
+    </div>
+
+    <div class="sec">
+      <h3>Cloud sync</h3>
+      <p class="note" style="margin-top:0">Sync your saved projects across devices and with your team. Enter the same three values on each device and everyone shares one Supabase workspace.</p>
+      <div class="fld"><label for="cloudUrl">Supabase URL</label><input id="cloudUrl" type="text" spellcheck="false" placeholder="https://xxxx.supabase.co"></div>
+      <div class="fld"><label for="cloudKey">Public (anon) key</label><input id="cloudKey" type="text" spellcheck="false" placeholder="eyJ… — safe to share with your team"></div>
+      <div class="fld"><label for="cloudWs">Workspace code</label><input id="cloudWs" type="text" spellcheck="false" placeholder="e.g. curanova-team — keep this private"></div>
+      <div class="two"><button class="btn dark" id="cloudConnect">Connect &amp; sync</button><button class="btn ghost" id="cloudPush">Upload local projects</button></div>
+      <button class="btn ghost" id="cloudOff">Turn off cloud sync</button>
+      <p class="note" id="cloudStat" style="min-height:14px;margin-bottom:6px"></p>
+      <details>
+        <summary class="note" style="cursor:pointer;list-style:revert">One-time Supabase setup (do this once for the whole team)</summary>
+        <p class="note" style="margin-top:6px">1. Create a free project at <b>supabase.com</b>. 2. Open <b>SQL Editor</b>, paste the snippet below and Run it. 3. In <b>Settings → API</b>, copy the <b>Project URL</b> and the <b>anon public</b> key into the fields above, pick any shared <b>Workspace code</b>, and press Connect. Give the same three values to Mohammad.</p>
+        <pre style="white-space:pre-wrap;font-size:11px;line-height:1.5;background:#0F2A48;color:#DDE8F1;padding:12px;border-radius:8px;overflow:auto">create table if not exists projects (
+  id text primary key,
+  workspace text not null,
+  name text not null,
+  t bigint not null,
+  n int,
+  stripped boolean default false,
+  data jsonb not null
+);
+alter table projects enable row level security;
+create policy "cngi read"   on projects for select to anon using (true);
+create policy "cngi insert" on projects for insert to anon with check (true);
+create policy "cngi update" on projects for update to anon using (true) with check (true);
+create policy "cngi delete" on projects for delete to anon using (true);</pre>
+        <p class="note">Anyone with the anon key <b>and</b> your workspace code can read the library, so keep the workspace code private. To wall off different teams, just use a different workspace code.</p>
+      </details>
     </div>
 
     <div class="sec">
@@ -2907,11 +2937,56 @@ document.getElementById('verList').addEventListener('click', e => {
 
 /* ================= named projects =================
    Save the whole studio (packState) under a name so you can start a new
-   blank project and reopen a saved one later. Stored under their own key,
-   independent of autosave/history and .json export. */
+   blank project and reopen a saved one later. Kept in this browser under
+   PROJ_KEY, and — when Cloud sync is configured — mirrored to a shared
+   Supabase workspace so every device and teammate sees the same library. */
 const PROJ_KEY = 'curanova.projects.v1';
+const CLOUD_KEY = 'curanova.cloud.v1';
 function loadProjects(){ try { return JSON.parse(localStorage.getItem(PROJ_KEY)) || []; } catch(_) { return []; } }
 function saveProjects(list){ return trySet(PROJ_KEY, list); }
+
+/* ---- cloud (Supabase REST) ---- */
+function cloudCfg(){
+  try { const c = JSON.parse(localStorage.getItem(CLOUD_KEY)); if(c && c.url && c.key && c.ws) return c; } catch(_){}
+  return null;
+}
+function cloudBase(c){ return c.url.replace(/\/+$/, '') + '/rest/v1/projects'; }
+function cloudHeaders(c, extra){ return Object.assign({apikey: c.key, Authorization: 'Bearer ' + c.key, 'Content-Type': 'application/json'}, extra || {}); }
+function cloudStat(html){ const el = document.getElementById('cloudStat'); if(el) el.innerHTML = html; }
+async function cloudList(c){
+  const url = cloudBase(c) + '?workspace=eq.' + encodeURIComponent(c.ws) + '&select=id,name,t,n,stripped,data&order=t.desc';
+  const r = await fetch(url, {headers: cloudHeaders(c)});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  return await r.json();
+}
+async function cloudUpsert(c, entry){
+  const row = {id: entry.id, workspace: c.ws, name: entry.name, t: entry.t, n: entry.n, stripped: !!entry.stripped, data: entry.data};
+  const r = await fetch(cloudBase(c), {method:'POST', headers: cloudHeaders(c, {Prefer:'resolution=merge-duplicates,return=minimal'}), body: JSON.stringify(row)});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+}
+async function cloudDelete(c, id){
+  const url = cloudBase(c) + '?id=eq.' + encodeURIComponent(id) + '&workspace=eq.' + encodeURIComponent(c.ws);
+  const r = await fetch(url, {method:'DELETE', headers: cloudHeaders(c, {Prefer:'return=minimal'})});
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+}
+/* Pull the shared workspace into the local cache so the list renders
+   instantly and still works offline. */
+async function syncCloud(quiet){
+  const c = cloudCfg(); if(!c) return false;
+  cloudStat('Syncing…');
+  try {
+    const rows = await cloudList(c);
+    const list = rows.map(r => ({id:r.id, name:r.name, t:+r.t, n:r.n, stripped:!!r.stripped, data:r.data}));
+    saveProjects(list); renderProjects();
+    cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '” · ' + list.length + ' project' + (list.length!==1?'s':''));
+    return true;
+  } catch(e){
+    cloudStat('<b>Offline or not reachable</b> — showing the last synced copy. (' + esc(e.message) + ')');
+    if(!quiet) renderProjects();
+    return false;
+  }
+}
+
 function renderProjects(){
   const el = document.getElementById('projList'); if(!el) return;
   if(!HAS_LS){ el.innerHTML = '<p class="note" style="margin:6px 0 0">Storage is unavailable in this browser, so projects can\'t be saved.</p>'; return; }
@@ -2924,7 +2999,7 @@ function renderProjects(){
       + `<div class="veract"><button class="chip" data-projopen="${i}">Open</button><button class="chip" data-projdel="${i}" title="Delete">✕</button></div></div>`;
   }).join('');
 }
-function saveCurrentProject(){
+async function saveCurrentProject(){
   if(!HAS_LS){ note('Storage is unavailable in this browser — projects can\'t be saved.'); return; }
   const inp = document.getElementById('projName'); const name = (inp.value || '').trim();
   if(!name){ note('Give the project a name first.'); inp.focus(); return; }
@@ -2937,11 +3012,15 @@ function saveCurrentProject(){
     entry.data = packState(true); entry.stripped = true;
     if(at >= 0) list[at] = entry; else list[0] = entry;
     if(!saveProjects(list)){ note('Could not save — browser storage is full. Delete an old project or use Save .json.'); return; }
-    note('Project “' + name + '” saved (images were too large to keep in-browser).');
-  } else {
-    note('Project “' + name + '” saved to this browser.');
   }
   inp.value = ''; renderProjects();
+  const c = cloudCfg();
+  if(c){
+    try { await cloudUpsert(c, entry); note('Project “' + name + '” saved and synced to the cloud.'); cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '”'); }
+    catch(e){ note('Project “' + name + '” saved on this device — cloud sync failed (offline?). It will need a re-save when you\'re back online.'); cloudStat('<b>Last save did not reach the cloud</b> — ' + esc(e.message)); }
+  } else {
+    note('Project “' + name + '” saved to this browser.' + (entry.stripped ? ' (Images were too large to keep in-browser.)' : ''));
+  }
 }
 function openProject(i){
   const list = loadProjects(); const p = list[i]; if(!p) return;
@@ -2952,8 +3031,16 @@ function openProject(i){
   toolbars(); panel(); render(); writeAuto();
   note('Opened “' + p.name + '”.');
 }
+async function deleteProject(i){
+  const list = loadProjects(); const p = list[i]; if(!p) return;
+  if(!confirm('Delete the saved project “' + p.name + '”? This cannot be undone.' + (cloudCfg() ? ' It is removed for the whole team.' : ''))) return;
+  list.splice(i, 1); saveProjects(list); renderProjects();
+  const c = cloudCfg();
+  if(c){ try { await cloudDelete(c, p.id); cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '”'); }
+         catch(e){ cloudStat('<b>Delete did not reach the cloud</b> — ' + esc(e.message)); } }
+}
 (function initProjects(){
-  const s = document.getElementById('projSave'); if(s) s.onclick = saveCurrentProject;
+  const s = document.getElementById('projSave'); if(s) s.onclick = () => saveCurrentProject();
   const inp = document.getElementById('projName');
   if(inp) inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); saveCurrentProject(); } });
   const nw = document.getElementById('projNew');
@@ -2966,12 +3053,48 @@ function openProject(i){
   if(el) el.addEventListener('click', e => {
     const b = e.target.closest('button'); if(!b) return;
     if(b.dataset.projopen !== undefined) openProject(+b.dataset.projopen);
-    else if(b.dataset.projdel !== undefined){
-      const list = loadProjects(); const p = list[+b.dataset.projdel]; if(!p) return;
-      if(!confirm('Delete the saved project “' + p.name + '”? This cannot be undone.')) return;
-      list.splice(+b.dataset.projdel, 1); saveProjects(list); renderProjects();
-    }
+    else if(b.dataset.projdel !== undefined) deleteProject(+b.dataset.projdel);
   });
+
+  /* ---- cloud sync controls ---- */
+  const gv = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const cfg = cloudCfg();
+  if(cfg){
+    const u = document.getElementById('cloudUrl'), k = document.getElementById('cloudKey'), w = document.getElementById('cloudWs');
+    if(u) u.value = cfg.url; if(k) k.value = cfg.key; if(w) w.value = cfg.ws;
+    cloudStat('Cloud sync on · workspace “' + esc(cfg.ws) + '”. Syncing…');
+    syncCloud(true);
+  } else {
+    cloudStat('Cloud sync is off — projects stay on this device.');
+  }
+  const conn = document.getElementById('cloudConnect');
+  if(conn) conn.onclick = async () => {
+    const url = gv('cloudUrl'), key = gv('cloudKey'), ws = gv('cloudWs').toLowerCase();
+    if(!/^https:\/\/.+/.test(url) || !key || !ws){ cloudStat('<b>Enter all three fields</b> — a https Supabase URL, the anon key, and a workspace code.'); return; }
+    trySet(CLOUD_KEY, {url, key, ws});
+    conn.disabled = true; cloudStat('Connecting…');
+    const ok = await syncCloud(false);
+    conn.disabled = false;
+    if(ok) note('Cloud sync connected — this device now shares workspace “' + ws + '”.');
+  };
+  const push = document.getElementById('cloudPush');
+  if(push) push.onclick = async () => {
+    const c = cloudCfg(); if(!c){ cloudStat('Connect first, then upload.'); return; }
+    const list = loadProjects(); if(!list.length){ note('No local projects to upload.'); return; }
+    push.disabled = true; cloudStat('Uploading ' + list.length + ' project' + (list.length!==1?'s':'') + '…');
+    let ok = 0;
+    for(const p of list){ try { await cloudUpsert(c, p); ok++; } catch(_){} }
+    push.disabled = false;
+    note('Uploaded ' + ok + ' of ' + list.length + ' project' + (list.length!==1?'s':'') + ' to the cloud.');
+    syncCloud(false);
+  };
+  const off = document.getElementById('cloudOff');
+  if(off) off.onclick = () => {
+    if(!confirm('Turn off cloud sync on this device? Your projects stay saved here; the shared workspace is untouched.')) return;
+    try { localStorage.removeItem(CLOUD_KEY); } catch(_){}
+    cloudStat('Cloud sync is off — projects stay on this device.');
+    note('Cloud sync turned off on this device.');
+  };
 })();
 
 /* ================= boot ================= */
