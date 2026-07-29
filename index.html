@@ -2976,15 +2976,26 @@ async function cloudDelete(c, id){
   if(!r.ok) throw new Error('HTTP ' + r.status);
 }
 /* Pull the shared workspace into the local cache so the list renders
-   instantly and still works offline. */
+   instantly and still works offline. This MERGES cloud and local: any
+   project that exists only on this device is uploaded to the shared
+   workspace rather than being overwritten, so switching to cloud sync
+   never loses a locally-saved project. */
 async function syncCloud(quiet){
   const c = cloudCfg(); if(!c) return false;
   cloudStat('Syncing…');
   try {
     const rows = await cloudList(c);
-    const list = rows.map(r => ({id:r.id, name:r.name, t:+r.t, n:r.n, stripped:!!r.stripped, data:r.data}));
-    saveProjects(list); renderProjects();
-    cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '” · ' + list.length + ' project' + (list.length!==1?'s':''));
+    const cloud = rows.map(r => ({id:r.id, name:r.name, t:+r.t, n:r.n, stripped:!!r.stripped, data:r.data}));
+    const cloudIds = new Set(cloud.map(p => p.id));
+    const local = loadProjects();
+    // Local-only projects (never uploaded) → push them up so they're preserved and shared.
+    const localOnly = local.filter(p => p && p.id && !cloudIds.has(p.id));
+    let uploaded = 0;
+    for(const p of localOnly){ try { await cloudUpsert(c, p); uploaded++; } catch(_){} }
+    // Merge: everything in the cloud plus the local-only ones we just uploaded.
+    const merged = cloud.concat(localOnly).sort((a,b) => (b.t||0) - (a.t||0));
+    saveProjects(merged); renderProjects();
+    cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '” · ' + merged.length + ' project' + (merged.length!==1?'s':'') + (uploaded ? ' · uploaded ' + uploaded + ' from this device' : ''));
     return true;
   } catch(e){
     cloudStat('<b>Offline or not reachable</b> — showing the last synced copy. (' + esc(e.message) + ')');
