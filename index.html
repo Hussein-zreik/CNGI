@@ -840,12 +840,12 @@ body.gridview .stage{display:none}
       <div class="fld"><label for="projName">Project name</label><input id="projName" type="text" placeholder="e.g. Diabetic foot campaign" maxlength="60"></div>
       <div class="two"><button class="btn dark" id="projSave">Save project</button><button class="btn ghost" id="projNew">New blank project</button></div>
       <div id="projList" class="verlist"></div>
-      <p class="note">Projects save in this browser by default. Turn on <b>Cloud sync</b> below to share the same library across devices and with your team.</p>
+      <p class="note"><b>✓ Auto-sync enabled</b> — your projects save to the cloud instantly and sync across all your devices and with your team.</p>
     </div>
 
     <div class="sec">
       <h3>Cloud sync</h3>
-      <p class="note" style="margin-top:0">Sync your saved projects across devices and with your team. Enter the same three values on each device and everyone shares one Supabase workspace.</p>
+      <p class="note" style="margin-top:0"><b>✓ Active:</b> Your saved projects sync automatically across all devices and team members in workspace <b>curanova-team</b>. No setup needed.</p>
       <div class="fld"><label for="cloudUrl">Supabase URL</label><input id="cloudUrl" type="text" spellcheck="false" placeholder="https://xxxx.supabase.co"></div>
       <div class="fld"><label for="cloudKey">Public (anon) key</label><input id="cloudKey" type="text" spellcheck="false" placeholder="eyJ… — safe to share with your team"></div>
       <div class="fld"><label for="cloudWs">Workspace code</label><input id="cloudWs" type="text" spellcheck="false" placeholder="e.g. curanova-team — keep this private"></div>
@@ -2946,9 +2946,15 @@ function loadProjects(){ try { return JSON.parse(localStorage.getItem(PROJ_KEY))
 function saveProjects(list){ return trySet(PROJ_KEY, list); }
 
 /* ---- cloud (Supabase REST) ---- */
+const CLOUD_BUILT_IN = {
+  url: 'https://jacnptuyspgqrfjjcvgu.supabase.co',
+  key: 'sb_publishable_0Iuqq-AaHrtzLNnUajBpqQ_GHMv4YkO',
+  ws: 'curanova-team'
+};
 function cloudCfg(){
+  // Built-in credentials always active; user can still override in localStorage if needed
   try { const c = JSON.parse(localStorage.getItem(CLOUD_KEY)); if(c && c.url && c.key && c.ws) return c; } catch(_){}
-  return null;
+  return CLOUD_BUILT_IN;
 }
 function cloudBase(c){ return c.url.replace(/\/+$/, '') + '/rest/v1/projects'; }
 function cloudHeaders(c, extra){ return Object.assign({apikey: c.key, Authorization: 'Bearer ' + c.key, 'Content-Type': 'application/json'}, extra || {}); }
@@ -3056,45 +3062,25 @@ async function deleteProject(i){
     else if(b.dataset.projdel !== undefined) deleteProject(+b.dataset.projdel);
   });
 
-  /* ---- cloud sync controls ---- */
-  const gv = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  /* ---- auto-sync with built-in credentials (hidden UI) ---- */
   const cfg = cloudCfg();
   if(cfg){
-    const u = document.getElementById('cloudUrl'), k = document.getElementById('cloudKey'), w = document.getElementById('cloudWs');
-    if(u) u.value = cfg.url; if(k) k.value = cfg.key; if(w) w.value = cfg.ws;
-    cloudStat('Cloud sync on · workspace “' + esc(cfg.ws) + '”. Syncing…');
+    cloudStat('<b>✓ Auto-sync active</b> — projects sync instantly in workspace “' + esc(cfg.ws) + '”');
     syncCloud(true);
-  } else {
-    cloudStat('Cloud sync is off — projects stay on this device.');
   }
-  const conn = document.getElementById('cloudConnect');
-  if(conn) conn.onclick = async () => {
-    const url = gv('cloudUrl'), key = gv('cloudKey'), ws = gv('cloudWs').toLowerCase();
-    if(!/^https:\/\/.+/.test(url) || !key || !ws){ cloudStat('<b>Enter all three fields</b> — a https Supabase URL, the anon key, and a workspace code.'); return; }
-    trySet(CLOUD_KEY, {url, key, ws});
-    conn.disabled = true; cloudStat('Connecting…');
-    const ok = await syncCloud(false);
-    conn.disabled = false;
-    if(ok) note('Cloud sync connected — this device now shares workspace “' + ws + '”.');
-  };
-  const push = document.getElementById('cloudPush');
-  if(push) push.onclick = async () => {
-    const c = cloudCfg(); if(!c){ cloudStat('Connect first, then upload.'); return; }
-    const list = loadProjects(); if(!list.length){ note('No local projects to upload.'); return; }
-    push.disabled = true; cloudStat('Uploading ' + list.length + ' project' + (list.length!==1?'s':'') + '…');
-    let ok = 0;
-    for(const p of list){ try { await cloudUpsert(c, p); ok++; } catch(_){} }
-    push.disabled = false;
-    note('Uploaded ' + ok + ' of ' + list.length + ' project' + (list.length!==1?'s':'') + ' to the cloud.');
-    syncCloud(false);
-  };
-  const off = document.getElementById('cloudOff');
-  if(off) off.onclick = () => {
-    if(!confirm('Turn off cloud sync on this device? Your projects stay saved here; the shared workspace is untouched.')) return;
-    try { localStorage.removeItem(CLOUD_KEY); } catch(_){}
-    cloudStat('Cloud sync is off — projects stay on this device.');
-    note('Cloud sync turned off on this device.');
-  };
+  // Hide manual cloud setup UI (replaced by built-in auto-sync)
+  const hideIds = ['cloudUrl', 'cloudKey', 'cloudWs', 'cloudConnect', 'cloudPush', 'cloudOff'];
+  hideIds.forEach(id => {
+    const el = document.getElementById(id);
+    if(el){
+      el.style.display = 'none';
+      if(el.parentElement && el.parentElement.classList.contains('fld')) el.parentElement.style.display = 'none';
+      if(el.parentElement && el.parentElement.classList.contains('two')) el.parentElement.style.display = 'none';
+    }
+  });
+  // Hide the cloud setup details section
+  const details = document.querySelector('details');
+  if(details) details.style.display = 'none';
 })();
 
 /* ================= boot ================= */
