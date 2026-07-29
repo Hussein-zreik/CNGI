@@ -2944,8 +2944,17 @@ document.getElementById('verList').addEventListener('click', e => {
    Supabase workspace so every device and teammate sees the same library. */
 const PROJ_KEY = 'curanova.projects.v1';
 const CLOUD_KEY = 'curanova.cloud.v1';
+/* IDs this device has ever seen present in the shared cloud workspace. Used to
+   tell a genuine remote delete (id was seen before, now gone → drop locally)
+   apart from a brand-new local project (never seen → upload it). Without this,
+   syncing would re-upload a project a teammate deleted, resurrecting it. */
+const SEEN_KEY = 'curanova.cloudseen.v1';
 function loadProjects(){ try { return JSON.parse(localStorage.getItem(PROJ_KEY)) || []; } catch(_) { return []; } }
 function saveProjects(list){ return trySet(PROJ_KEY, list); }
+function loadSeen(){ try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)) || []); } catch(_) { return new Set(); } }
+function saveSeen(set){ return trySet(SEEN_KEY, Array.from(set)); }
+function markSeen(id){ if(!id) return; const s = loadSeen(); s.add(id); saveSeen(s); }
+function unmarkSeen(id){ if(!id) return; const s = loadSeen(); s.delete(id); saveSeen(s); }
 
 /* ---- cloud (Supabase REST) ---- */
 const CLOUD_BUILT_IN = {
@@ -2978,10 +2987,14 @@ async function cloudDelete(c, id){
   if(!r.ok) throw new Error('HTTP ' + r.status);
 }
 /* Pull the shared workspace into the local cache so the list renders
-   instantly and still works offline. This MERGES cloud and local: any
-   project that exists only on this device is uploaded to the shared
-   workspace rather than being overwritten, so switching to cloud sync
-   never loses a locally-saved project. */
+   instantly and still works offline. Reconciles cloud and local three ways,
+   so no project is lost and no delete is undone:
+     • In the cloud            → cloud copy is authoritative (kept).
+     • Local only, never seen  → a new project on this device → upload it, keep it.
+     • Local only, seen before → a teammate deleted it in the cloud → drop it locally.
+   The "seen" set (SEEN_KEY) is what distinguishes a fresh local project from one
+   that was deleted remotely, so switching to cloud sync never wipes local work
+   and deleting on one device propagates to the others. */
 async function syncCloud(quiet){
   const c = cloudCfg(); if(!c) return false;
   cloudStat('Syncing…');
@@ -2989,15 +3002,23 @@ async function syncCloud(quiet){
     const rows = await cloudList(c);
     const cloud = rows.map(r => ({id:r.id, name:r.name, t:+r.t, n:r.n, stripped:!!r.stripped, data:r.data}));
     const cloudIds = new Set(cloud.map(p => p.id));
+    const seen = loadSeen();
     const local = loadProjects();
-    // Local-only projects (never uploaded) → push them up so they're preserved and shared.
     const localOnly = local.filter(p => p && p.id && !cloudIds.has(p.id));
+    // New here (never seen in the cloud) → upload and keep. Seen before but now
+    // gone → deleted by a teammate → let it fall away (don't upload, don't keep).
+    const toUpload = localOnly.filter(p => !seen.has(p.id));
+    const removedRemotely = localOnly.filter(p => seen.has(p.id));
     let uploaded = 0;
-    for(const p of localOnly){ try { await cloudUpsert(c, p); uploaded++; } catch(_){} }
-    // Merge: everything in the cloud plus the local-only ones we just uploaded.
-    const merged = cloud.concat(localOnly).sort((a,b) => (b.t||0) - (a.t||0));
+    for(const p of toUpload){ try { await cloudUpsert(c, p); uploaded++; } catch(_){} }
+    const merged = cloud.concat(toUpload).sort((a,b) => (b.t||0) - (a.t||0));
     saveProjects(merged); renderProjects();
-    cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '” · ' + merged.length + ' project' + (merged.length!==1?'s':'') + (uploaded ? ' · uploaded ' + uploaded + ' from this device' : ''));
+    // Remember everything now known to be in the cloud, so future syncs can
+    // detect remote deletes. Drop ids that were deleted remotely.
+    saveSeen(new Set(merged.map(p => p.id)));
+    const dropped = removedRemotely.length;
+    cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '” · ' + merged.length + ' project' + (merged.length!==1?'s':'')
+      + (uploaded ? ' · uploaded ' + uploaded : '') + (dropped ? ' · removed ' + dropped + ' deleted by the team' : ''));
     return true;
   } catch(e){
     cloudStat('<b>Offline or not reachable</b> — showing the last synced copy. (' + esc(e.message) + ')');
@@ -3035,7 +3056,7 @@ async function saveCurrentProject(){
   inp.value = ''; renderProjects();
   const c = cloudCfg();
   if(c){
-    try { await cloudUpsert(c, entry); note('Project “' + name + '” saved and synced to the cloud.'); cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '”'); }
+    try { await cloudUpsert(c, entry); markSeen(entry.id); note('Project “' + name + '” saved and synced to the cloud.'); cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '”'); }
     catch(e){ note('Project “' + name + '” saved on this device — cloud sync failed (offline?). It will need a re-save when you\'re back online.'); cloudStat('<b>Last save did not reach the cloud</b> — ' + esc(e.message)); }
   } else {
     note('Project “' + name + '” saved to this browser.' + (entry.stripped ? ' (Images were too large to keep in-browser.)' : ''));
@@ -3054,6 +3075,7 @@ async function deleteProject(i){
   const list = loadProjects(); const p = list[i]; if(!p) return;
   if(!confirm('Delete the saved project “' + p.name + '”? This cannot be undone.' + (cloudCfg() ? ' It is removed for the whole team.' : ''))) return;
   list.splice(i, 1); saveProjects(list); renderProjects();
+  unmarkSeen(p.id);
   const c = cloudCfg();
   if(c){ try { await cloudDelete(c, p.id); cloudStat('Synced · ' + hm() + ' · workspace “' + esc(c.ws) + '”'); }
          catch(e){ cloudStat('<b>Delete did not reach the cloud</b> — ' + esc(e.message)); } }
