@@ -835,6 +835,15 @@ body.gridview .stage{display:none}
     </div>
 
     <div class="sec">
+      <h3>Projects</h3>
+      <p class="note" style="margin-top:0">Save the whole current project under a name. Then you can start a blank one and reopen any saved project later to continue where you left off.</p>
+      <div class="fld"><label for="projName">Project name</label><input id="projName" type="text" placeholder="e.g. Diabetic foot campaign" maxlength="60"></div>
+      <div class="two"><button class="btn dark" id="projSave">Save project</button><button class="btn ghost" id="projNew">New blank project</button></div>
+      <div id="projList" class="verlist"></div>
+      <p class="note">Projects live only in this browser on this device. Use <b>Save .json</b> above for a portable backup you can move between devices.</p>
+    </div>
+
+    <div class="sec">
       <h3>Autosave &amp; history</h3>
       <p class="note" id="autoStat" style="margin-top:0">Autosave on — your work stays in this browser.</p>
       <button class="btn ghost" id="snapBtn">Save a version</button>
@@ -2885,6 +2894,75 @@ document.getElementById('verList').addEventListener('click', e => {
   }
 });
 
+/* ================= named projects =================
+   Save the whole studio (packState) under a name so you can start a new
+   blank project and reopen a saved one later. Stored under their own key,
+   independent of autosave/history and .json export. */
+const PROJ_KEY = 'curanova.projects.v1';
+function loadProjects(){ try { return JSON.parse(localStorage.getItem(PROJ_KEY)) || []; } catch(_) { return []; } }
+function saveProjects(list){ return trySet(PROJ_KEY, list); }
+function renderProjects(){
+  const el = document.getElementById('projList'); if(!el) return;
+  if(!HAS_LS){ el.innerHTML = '<p class="note" style="margin:6px 0 0">Storage is unavailable in this browser, so projects can\'t be saved.</p>'; return; }
+  const list = loadProjects();
+  if(!list.length){ el.innerHTML = '<p class="note" style="margin:6px 0 0">No saved projects yet.</p>'; return; }
+  el.innerHTML = list.map((p,i) => {
+    const stamp = new Date(p.t).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+    const tags = `${p.n} slide${p.n!==1?'s':''} · saved ${relTime(p.t)}${p.stripped?' · no images':''}`;
+    return `<div class="verrow"><div class="vermeta"><b>${esc(p.name)}</b><span>${stamp} · ${tags}</span></div>`
+      + `<div class="veract"><button class="chip" data-projopen="${i}">Open</button><button class="chip" data-projdel="${i}" title="Delete">✕</button></div></div>`;
+  }).join('');
+}
+function saveCurrentProject(){
+  if(!HAS_LS){ note('Storage is unavailable in this browser — projects can\'t be saved.'); return; }
+  const inp = document.getElementById('projName'); const name = (inp.value || '').trim();
+  if(!name){ note('Give the project a name first.'); inp.focus(); return; }
+  let list = loadProjects();
+  const at = list.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+  if(at >= 0 && !confirm('A project named “' + name + '” already exists. Replace it?')) return;
+  const entry = {id: at >= 0 ? list[at].id : 'p' + Date.now(), name, t: Date.now(), n: state.slides.length, data: packState(false)};
+  if(at >= 0) list[at] = entry; else list.unshift(entry);
+  if(!saveProjects(list)){
+    entry.data = packState(true); entry.stripped = true;
+    if(at >= 0) list[at] = entry; else list[0] = entry;
+    if(!saveProjects(list)){ note('Could not save — browser storage is full. Delete an old project or use Save .json.'); return; }
+    note('Project “' + name + '” saved (images were too large to keep in-browser).');
+  } else {
+    note('Project “' + name + '” saved to this browser.');
+  }
+  inp.value = ''; renderProjects();
+}
+function openProject(i){
+  const list = loadProjects(); const p = list[i]; if(!p) return;
+  if(!confirm('Open “' + p.name + '”? Save your current project first if you want to keep it — this replaces what’s on screen.')) return;
+  if(!applyPack(p.data)){ note('That project could not be opened.'); return; }
+  document.body.classList.toggle('gridview', state.view === 'grid');
+  stage.classList.toggle('thumb', state.thumb);
+  toolbars(); panel(); render(); writeAuto();
+  note('Opened “' + p.name + '”.');
+}
+(function initProjects(){
+  const s = document.getElementById('projSave'); if(s) s.onclick = saveCurrentProject;
+  const inp = document.getElementById('projName');
+  if(inp) inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); saveCurrentProject(); } });
+  const nw = document.getElementById('projNew');
+  if(nw) nw.onclick = () => {
+    if(!confirm('Start a new blank project? Save your current project first if you want to keep it — saved projects are not affected.')) return;
+    try { localStorage.removeItem(AUTO_KEY); } catch(_){}
+    location.reload();
+  };
+  const el = document.getElementById('projList');
+  if(el) el.addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    if(b.dataset.projopen !== undefined) openProject(+b.dataset.projopen);
+    else if(b.dataset.projdel !== undefined){
+      const list = loadProjects(); const p = list[+b.dataset.projdel]; if(!p) return;
+      if(!confirm('Delete the saved project “' + p.name + '”? This cannot be undone.')) return;
+      list.splice(+b.dataset.projdel, 1); saveProjects(list); renderProjects();
+    }
+  });
+})();
+
 /* ================= boot ================= */
 const restored = restoreAuto();
 document.body.classList.toggle('gridview', state.view === 'grid');
@@ -2892,6 +2970,7 @@ stage.classList.toggle('thumb', state.thumb);
 syncTone();
 toolbars(); panel(); render();
 renderVersions();
+renderProjects();
 if(!HAS_LS) autoStat('Autosave is unavailable in this browser (private mode or storage blocked).');
 else if(restored) note('Restored your previous session. Use “Save a version” to bookmark checkpoints you can return to.');
 document.fonts && document.fonts.ready.then(() => render());
