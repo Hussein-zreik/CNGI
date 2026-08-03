@@ -761,6 +761,8 @@ body.gridview .stage{display:none}
     <div class="sec">
       <h3>Header &amp; footer text</h3>
       <div class="fld"><label for="bTag">Header — service line</label><input id="bTag"></div>
+      <label class="chk" style="margin-top:6px"><input type="checkbox" id="hideLogo"> Hide the logo on every slide</label>
+      <label class="chk" style="margin-top:6px"><input type="checkbox" id="hideWordmark"> Hide the “CuraNova” wordmark on every slide</label>
       <label class="chk" style="margin-top:6px"><input type="checkbox" id="footerOn" checked> Show footer (contact lines) on the post</label>
       <div class="fld"><label for="bC1">Footer — WhatsApp line</label><input id="bC1"></div>
       <div class="fld"><label for="bC2">Footer — social handle</label><input id="bC2"></div>
@@ -965,7 +967,7 @@ function ctaSuggest(goal, lang){
   return {cta, reason, stars};
 }
 const state = {
-  fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6, swipeIx:false, grain:false,
+  fmt:'square', lang:'en', safe:false, thumb:false, view:'single', redIdx:0, style:'refined', texture:'tile', texAlpha:6, swipeIx:false, grain:false, hideLogo:false, hideWordmark:false,
   tone:'patient', capLen:'standard', dialect:'msa',
   brand:{
     en:{tag:'Wound & Diabetic Foot Care at Home', c1:'WhatsApp +961 79 093 599', c2:'@curanova.care'},
@@ -1348,10 +1350,10 @@ function paint(el, slide, f, lang){
   el.innerHTML = bgSvg(f.w, f.h, navy, f.cs, slide.comp, slide.swoosh) + photoLayer + `
     <div class="layer">
       <div class="brandbar">
-        <span class="logoslot"><img src="${LOGO}" alt="CuraNova"></span>
+        ${state.hideLogo ? '' : `<span class="logoslot"><img src="${LOGO}" alt="CuraNova"></span>`}
         <div class="wordmark">
-          <div class="name"><span class="a">Cura</span><span class="b">Nova</span><span class="lb">Lb</span></div>
-          <div class="wmrule"></div>
+          ${state.hideWordmark ? '' : `<div class="name"><span class="a">Cura</span><span class="b">Nova</span><span class="lb">Lb</span></div>
+          <div class="wmrule"></div>`}
           <div class="tag">${esc(b.tag)}</div>
         </div>
       </div>
@@ -1553,6 +1555,8 @@ function panel(){
   document.getElementById('shareBadge').value = s.shareBadge || 'none';
   document.getElementById('swipeIx').checked = !!state.swipeIx;
   document.getElementById('grainOn').checked = !!state.grain;
+  document.getElementById('hideLogo').checked = !!state.hideLogo;
+  document.getElementById('hideWordmark').checked = !!state.hideWordmark;
   renderIcons();
   document.getElementById('consentOk').checked = !!s.consent.ok;
   document.getElementById('consentRef').value = s.consent.ref;
@@ -1592,6 +1596,8 @@ document.getElementById('varyBtn').onclick = () => {
   B()[['tag','c1','c2'][i]] = e.target.value; render();
 }));
 document.getElementById('footerOn').addEventListener('change', e => { S().footerOn = e.target.checked; render(); });
+document.getElementById('hideLogo').addEventListener('change', e => { state.hideLogo = e.target.checked; if(state.view==='grid') renderGrid(); render(); });
+document.getElementById('hideWordmark').addEventListener('change', e => { state.hideWordmark = e.target.checked; if(state.view==='grid') renderGrid(); render(); });
 document.getElementById('source').addEventListener('input', e => { S().meta.source = e.target.value; safety(); });
 document.getElementById('discOn').addEventListener('change', e => { S().disclaimer = e.target.checked; render(); });
 document.getElementById('waOn').addEventListener('change', e => { S().waOn = e.target.checked; document.getElementById('waWrap').style.display = e.target.checked ? '' : 'none'; render(); });
@@ -2825,7 +2831,7 @@ function packState(strip){
   });
   return {v:1, fmt:state.fmt, lang:state.lang, style:state.style, texture:state.texture,
           texAlpha:state.texAlpha, view:state.view, tone:state.tone, capLen:state.capLen,
-          dialect:state.dialect, swipeIx:state.swipeIx, grain:state.grain, active:state.active, brand:state.brand, slides};
+          dialect:state.dialect, swipeIx:state.swipeIx, grain:state.grain, hideLogo:state.hideLogo, hideWordmark:state.hideWordmark, active:state.active, brand:state.brand, slides};
 }
 function applyPack(d){
   if(!d || !d.slides || !d.slides.length) return false;
@@ -2851,6 +2857,8 @@ function applyPack(d){
   if(d.view) state.view = d.view;
   if(typeof d.swipeIx === 'boolean') state.swipeIx = d.swipeIx;
   if(typeof d.grain === 'boolean') state.grain = d.grain;
+  if(typeof d.hideLogo === 'boolean') state.hideLogo = d.hideLogo;
+  if(typeof d.hideWordmark === 'boolean') state.hideWordmark = d.hideWordmark;
   state.active = Math.min(Math.max(0, d.active || 0), state.slides.length - 1);
   return true;
 }
