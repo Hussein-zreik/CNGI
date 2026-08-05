@@ -566,6 +566,9 @@ body.gridview .stage{display:none}
         <div class="fld"><label>&nbsp;</label><button class="btn ghost" id="panoBuild" style="margin:0;padding:9px 0">Split a photo</button></div>
       </div>
       <p class="note">Panorama splits the current slide's photo into a seamless multi-slide sweep — best with a wide landscape image. Add the photo in Design → Photo first.</p>
+      <label class="tglabel" style="margin-top:12px">Bilingual deck</label>
+      <button class="btn ghost" id="mirrorAll" style="margin-top:0">Mirror all slides to Arabic</button>
+      <p class="note">Duplicates every slide into Arabic and appends them after your originals (e.g. 5 English → 5 English + 5 Arabic). Translates with your AI key if set; otherwise it uses the Arabic already filled on each slide. Toggle the top language to العربية to review or edit the Arabic side.</p>
     </div>
 
     <div class="sec">
@@ -1430,7 +1433,7 @@ function fit(){ const f = FORMATS[state.fmt]; post.style.transform = 'scale(' + 
 function render(){
   const f = FORMATS[state.fmt];
   stageInner.style.paddingTop = (f.h/f.w*100)+'%';
-  paint(post, S(), f, state.lang);
+  paint(post, S(), f, S().lang || state.lang);
   fit();
   capacity();
   if(state.view === 'grid') renderGrid();
@@ -1442,7 +1445,7 @@ function renderGrid(){
   g.innerHTML = state.slides.slice(0,9).map((s,i)=>`<div class="cell"><span class="tagno">${i+1}</span><div class="post" data-cell="${i}"></div></div>`).join('');
   g.querySelectorAll('[data-cell]').forEach(el => {
     const i = +el.dataset.cell;
-    paint(el, state.slides[i], f, state.lang);
+    paint(el, state.slides[i], f, state.slides[i].lang || state.lang);
     el.style.transform = 'scale(' + (el.parentElement.clientWidth/f.w) + ')';
   });
 }
@@ -2252,24 +2255,59 @@ document.getElementById('batchBtn').onclick = async () => {
   btn.disabled = false; btn.textContent = 'Batch all lines';
   note('Batch finished (' + (aiKey() ? 'AI' : 'offline templates') + '). Review each slide before exporting.');
 };
-document.getElementById('transBtn').onclick = async () => {
-  const from = state.lang, to = from==='en' ? 'ar' : 'en';
-  if(!aiKey()) return note('Add an API key (Anthropic or OpenAI) under “AI copy settings” to mirror languages. Offline drafts already fill both sides — refine the other language by hand.');
-  const btn = document.getElementById('transBtn'); btn.disabled = true; btn.textContent = 'Mirroring…';
-  const src = S()[from];
-  const arTarget = state.dialect==='leb' ? 'Lebanese spoken Arabic (لهجة لبنانية)' : 'Modern Standard Arabic (فصحى)';
-  const p = `Adapt this CuraNova clinical social post from ${from==='en' ? 'English into ' + arTarget : 'Arabic into English'}.
+function translatePrompt(src, from, to, dialect){
+  const arTarget = dialect==='leb' ? 'Lebanese spoken Arabic (لهجة لبنانية)' : 'Modern Standard Arabic (فصحى)';
+  return `Adapt this CuraNova clinical social post from ${from==='en' ? 'English into ' + arTarget : 'Arabic into English'}.
 Keep the meaning and the clinical caution; write naturally for a Lebanese reader rather than translating literally. Keep any *asterisks* around a highlighted word.${to==='ar' ? ' Use Arabic-Indic numerals (٠١٢٣).' : ''}
 Source: ${JSON.stringify({eyebrow:src.eyebrow,title:src.title,body:src.body,cta:src.cta,items:src.items,myth:src.myth,fact:src.fact,statLabel:src.statLabel,attrib:src.attrib,beforeLbl:src.beforeLbl,afterLbl:src.afterLbl,caption:src.caption})}
 Return ONLY minified JSON with those same keys.`;
+}
+document.getElementById('transBtn').onclick = async () => {
+  const from = state.lang, to = from==='en' ? 'ar' : 'en';
+  if(!aiKey()) return note('Add an API key (Anthropic, OpenAI or Google) under “AI copy settings” to mirror languages. Offline drafts already fill both sides — refine the other language by hand.');
+  const btn = document.getElementById('transBtn'); btn.disabled = true; btn.textContent = 'Mirroring…';
   try{
-    const j = await callClaude(p);
+    const j = await callClaude(translatePrompt(S()[from], from, to, state.dialect));
     Object.keys(j).forEach(k => { if(j[k]) S()[to][k] = j[k]; });
     note('Mirrored into ' + (to==='ar'?'Arabic':'English') + '. Read it once before publishing.');
     panel(); render();
   }catch(err){ note('Mirroring failed: ' + (err.message||'network error') + '.'); }
   btn.disabled = false; btn.textContent = 'Mirror into the other language';
 };
+/* Bilingual deck: append an Arabic-pinned copy of every base slide, translating
+   EN→AR with the AI key when set. Idempotent — existing Arabic-pinned slides are
+   regenerated, not stacked. */
+async function mirrorDeckToArabic(){
+  const btn = document.getElementById('mirrorAll');
+  const sources = state.slides.filter(s => s.lang !== 'ar');
+  if(!sources.length){ note('Add at least one slide first.'); return; }
+  if(state.slides.some(s => s.lang === 'ar') &&
+     !confirm('Regenerate the Arabic slides from your current English ones? Any manual edits to the existing Arabic slides will be replaced.')) return;
+  const key = aiKey();
+  if(btn){ btn.disabled = true; }
+  if(key){
+    for(let i=0;i<sources.length;i++){
+      if(btn) btn.textContent = `Translating ${i+1}/${sources.length}…`;
+      try{
+        const j = await callClaude(translatePrompt(sources[i].en, 'en', 'ar', state.dialect));
+        Object.keys(j).forEach(k => { if(j[k]) sources[i].ar[k] = j[k]; });
+      }catch(_){}
+      await new Promise(r=>setTimeout(r,180));
+    }
+  }
+  const arSlides = sources.map(s => { const d = JSON.parse(JSON.stringify(s)); d.lang = 'ar'; return d; });
+  state.slides = sources.concat(arSlides);
+  state.lang = 'en'; state.active = 0;
+  if(btn){ btn.disabled = false; btn.textContent = 'Mirror all slides to Arabic'; }
+  toolbars(); panel(); render();
+  note(key
+    ? `Added ${arSlides.length} Arabic slide${arSlides.length!==1?'s':''} after your ${sources.length} English one${sources.length!==1?'s':''}. Review the Arabic before publishing.`
+    : `Added ${arSlides.length} Arabic slide${arSlides.length!==1?'s':''} using the Arabic already on each slide. Add an AI key to auto-translate English → Arabic.`);
+}
+(function initMirrorAll(){
+  const b = document.getElementById('mirrorAll');
+  if(b) b.onclick = () => mirrorDeckToArabic();
+})();
 /* API key / model wiring — stored only in this browser, never in exports or history. */
 function aiStatus(){
   const el = document.getElementById('aiNote'); if(!el) return;
@@ -2729,7 +2767,7 @@ document.getElementById('dlAll').onclick = async () => {
     state.active = i; toolbars(); panel(); render();
     await new Promise(r=>setTimeout(r,140));
     btn.textContent = `Rendering ${i+1}/${state.slides.length}…`;
-    files.push({name:`curanova-${state.fmt}-${state.lang}-${i+1}.png`, data: dataURLtoBytes(await shoot(2))});
+    files.push({name:`curanova-${state.fmt}-${state.slides[i].lang || state.lang}-${i+1}.png`, data: dataURLtoBytes(await shoot(2))});
   }
   state.active = keep; toolbars(); panel(); render();
   btn.textContent = 'Zipping…';
