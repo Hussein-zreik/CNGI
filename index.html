@@ -532,6 +532,7 @@ body.gridview .stage{display:none}
           <select id="apiProvider">
             <option value="anthropic">Anthropic (Claude)</option>
             <option value="openai">OpenAI (ChatGPT)</option>
+            <option value="google">Google Gemini</option>
           </select>
         </div>
         <div class="fld" style="margin-bottom:8px">
@@ -540,7 +541,8 @@ body.gridview .stage{display:none}
         </div>
         <div class="fld" style="margin-bottom:6px">
           <label for="apiModel">Model</label>
-          <input id="apiModel" placeholder="claude-sonnet-5" spellcheck="false">
+          <input id="apiModel" placeholder="claude-sonnet-5" spellcheck="false" list="modelList">
+          <datalist id="modelList"></datalist>
         </div>
         <p class="note" id="aiNote" style="margin-top:0"></p>
       </details>
@@ -1920,8 +1922,9 @@ function gate(){
 /* BYOK AI — Anthropic (Claude) or OpenAI (ChatGPT). Keys/models are stored
    per provider in this browser only, never in exports or history. */
 const AI = {
-  anthropic:{ label:'Anthropic', keyLS:'curanova.ai.key',        modelLS:'curanova.ai.model',        defModel:'claude-sonnet-5', keyPh:'sk-ant-…' },
-  openai:   { label:'OpenAI',    keyLS:'curanova.ai.openai.key', modelLS:'curanova.ai.openai.model', defModel:'gpt-4o-mini',     keyPh:'sk-…' }
+  anthropic:{ label:'Anthropic', keyLS:'curanova.ai.key',        modelLS:'curanova.ai.model',        defModel:'claude-sonnet-5',  keyPh:'sk-ant-…', models:['claude-sonnet-5','claude-opus-5','claude-haiku-4-5-20251001'] },
+  openai:   { label:'OpenAI',    keyLS:'curanova.ai.openai.key', modelLS:'curanova.ai.openai.model', defModel:'gpt-4o-mini',      keyPh:'sk-…',     models:['gpt-4o-mini','gpt-4o'] },
+  google:   { label:'Google Gemini', keyLS:'curanova.ai.google.key', modelLS:'curanova.ai.google.model', defModel:'gemini-2.5-flash', keyPh:'AIza…', models:['gemini-2.5-flash','gemini-3-flash'] }
 };
 const AIPROVIDER_KEY = 'curanova.ai.provider', DEFAULT_MODEL = AI.anthropic.defModel;
 function aiProvider(){ try{ return AI[localStorage.getItem(AIPROVIDER_KEY)] ? localStorage.getItem(AIPROVIDER_KEY) : 'anthropic'; }catch(_){ return 'anthropic'; } }
@@ -1952,10 +1955,28 @@ async function callOpenAI(prompt, key){
   if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
   return parseAIJson(((data.choices||[])[0]||{}).message ? data.choices[0].message.content : '');
 }
+async function callGemini(prompt, key){
+  const model = aiModel();
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key), {
+    method:"POST",
+    headers:{ "content-type":"application/json" },
+    body: JSON.stringify({
+      contents:[{ parts:[{ text: prompt + "\n\nReturn ONLY a JSON object." }] }],
+      generationConfig:{ responseMimeType:"application/json", maxOutputTokens:1200 }
+    })
+  });
+  const data = await res.json().catch(() => ({}));
+  if(!res.ok) throw new Error((data.error && data.error.message) || ('HTTP ' + res.status));
+  const parts = (((data.candidates||[])[0]||{}).content||{}).parts || [];
+  return parseAIJson(parts.map(x => x.text || '').join(''));
+}
 async function callClaude(prompt){   // kept name for existing callers; dispatches by provider
   const key = aiKey();
   if(!key) throw new Error('no API key');
-  return aiProvider() === 'openai' ? callOpenAI(prompt, key) : callAnthropic(prompt, key);
+  const prov = aiProvider();
+  if(prov === 'openai') return callOpenAI(prompt, key);
+  if(prov === 'google') return callGemini(prompt, key);
+  return callAnthropic(prompt, key);
 }
 /* ---- Offline content library: pre-written, bilingual clinical posts ----
    Starting points only — every claim still needs the clinician's review,
@@ -2265,6 +2286,8 @@ function aiStatus(){
     prov.value = aiProvider();
     lbl.textContent = p.label + ' API key — optional';
     k.placeholder = p.keyPh; m.placeholder = p.defModel;
+    const dl = document.getElementById('modelList');
+    if(dl) dl.innerHTML = (p.models || [p.defModel]).map(x => '<option value="' + esc(x).replace(/"/g,'&quot;') + '">').join('');
     try { k.value = localStorage.getItem(p.keyLS) || ''; } catch(_){}
     try { m.value = localStorage.getItem(p.modelLS) || ''; } catch(_){}
     aiStatus();
